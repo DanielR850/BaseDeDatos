@@ -112,7 +112,7 @@ class InventarioVentana(QWidget):
                                     background-color: transparent;
                                     }
                                     """)
-        boton_buscar.clicked.connect(self.comprobar)
+        boton_buscar.clicked.connect(self.buscar_producto)
         layout_busqueda.addWidget(boton_buscar)
 
         layout_busqueda.addWidget(self.input_busqueda)
@@ -230,33 +230,50 @@ QTableCornerButton::section {
 
         self.setLayout(main_layout)
 ####################################################################
-###Apartado de funciones de la pantalla###
-    def comprobar(self):
+###APARTADO DE FUNCIONES NECESARIAS PARA EL FUNCIONAMIENTO DE LA PANTALLA###
+    def buscar_producto(self):
+        #########Se pondrá la funcion para realizar busquedas por medio del id#########
         id_busqueda = self.input_busqueda.text()
         print(f"Se realizó una busqueda del articulo con el id {id_busqueda}")
     
     def agregar_info_tabla(self):
+        #########Aquí se debe modificar la función, permitiendonos agregar productos a la base de datos y de igual forma a la tabla#########
         fila=self.tabla_inventario.rowCount()
         self.tabla_inventario.insertRow(fila)
-        self.tabla_inventario.setItem(fila, 0, QTableWidgetItem(f""))
+        self.tabla_inventario.setItem(fila, 0, QTableWidgetItem(f"Ejemplo"))
         self.tabla_inventario.setItem(fila, 1, QTableWidgetItem(f""))
         self.tabla_inventario.setItem(fila, 2, QTableWidgetItem(f""))
         self.tabla_inventario.setItem(fila, 3, QTableWidgetItem(f""))
             
-        datos = ["", " ", "", ""]
+        datos = ["Ejemplo", " ", "", ""]
         color_beige = QBrush(QColor("#F5F5DC"))  # Beige
 
         for columna, texto in enumerate(datos):
              item = QTableWidgetItem(texto)
              item.setBackground(color_beige)
              self.tabla_inventario.setItem(fila, columna, item)
+
+    def eliminar_producto(self):
+        #########Modificar funcion para que por medio del ID nos permita eliminar un producto#########
+        print("Producto eliminado")
+    def modificar_producto(self):
+        #########Se deberá modificar la función para que nos permita modificar un producto por medio de su ID#########
+        print("Producto modificado")
     
     def regresar(self):
+        ###En esta función se pondrá la función para regresar a la pantalla principal###
         print("Has regresado a la pantalla anterior")
     
     def info(self):
+          ###Modificar mensaje de acerca de...###
           QMessageBox.information(self, "Información", "Este sistema fue hecho por el equipo 1 de bases de datos de la FIME")
-        
+    
+    def eliminar_producto(self):
+        #########Modificar funcion para que por medio del ID nos permita eliminar un producto#########
+        print("Producto eliminado")
+    def modificar_producto(self):
+        #########Se deberá modificar la función para que nos permita modificar un producto por medio de su ID#########
+        print("Producto modificado")
 
 ####################################################################
 
