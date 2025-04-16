@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,QPushButton,QVBoxLayout,
     QHBoxLayout, QTableWidget, QTableWidgetItem,
     QSpacerItem, QSizePolicy,QHeaderView,QMessageBox)
-from PyQt5.QtGui import QFont, QPixmap, QIcon
+from PyQt5.QtGui import QFont, QPixmap, QIcon,QColor, QBrush
 from PyQt5.QtCore import Qt,QSize 
 from PyQt5 import QtGui
 
@@ -233,6 +233,14 @@ class InventarioVentana(QWidget):
         self.tabla_inventario.setItem(fila, 1, QTableWidgetItem(f"Loreal Paris"))
         self.tabla_inventario.setItem(fila, 2, QTableWidgetItem(f"99Mx"))
         self.tabla_inventario.setItem(fila, 3, QTableWidgetItem(f"10Pz"))
+            
+        datos = ["Tinte de cabello", "Loreal Paris", "99Mx", "10Pz"]
+        color_beige = QBrush(QColor("#F5F5DC"))  # Beige
+
+        for columna, texto in enumerate(datos):
+             item = QTableWidgetItem(texto)
+             item.setBackground(color_beige)
+             self.tabla_inventario.setItem(fila, columna, item)
     
     def regresar(self):
         print("Has regresado a la pantalla anterior")
