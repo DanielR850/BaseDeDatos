@@ -14,6 +14,7 @@ class InventarioVentana(QWidget):
         super().__init__()
         self.setWindowTitle("Inventario")
         self.setGeometry(470,150,1000,800)
+        self.setFixedSize(1000,800)
         self.setStyleSheet("""
                         background: qlineargradient(
                         x1: 0, y1: 0,
@@ -70,7 +71,7 @@ class InventarioVentana(QWidget):
 
         button_delete.setStyleSheet("""
             QPushButton {
-                background-color: #F18D8D;
+                background-color: #CF6978;
                 color: black;
                 border-radius: 20px;
                 padding: 12px 20px;
@@ -123,7 +124,7 @@ class InventarioVentana(QWidget):
         self.tabla_inventario = QTableWidget()
         self.tabla_inventario.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
-        self.tabla_inventario.setMinimumWidth(825)
+        self.tabla_inventario.setMinimumWidth(824)
         self.tabla_inventario.setMinimumHeight(500)
 
 
@@ -134,8 +135,8 @@ class InventarioVentana(QWidget):
         background-color: #CF6978;
         color: black;
         font-weight: bold;
-        font-size:23px;
-        font:sans-serif;
+        font-size:27px;
+        font:sans-serif;                                                     
         }
         """)
         self.tabla_inventario.verticalHeader().setStyleSheet("""
@@ -147,6 +148,11 @@ class InventarioVentana(QWidget):
         }
         """)
         self.tabla_inventario.setStyleSheet("font-size:15px; font:bold; font-family:'sans-serif';")
+        self.tabla_inventario.setStyleSheet("""
+QTableCornerButton::section {
+    background-color: #CF6978;
+    border: 1px solid #999;
+}""")
         self.tabla_inventario.setColumnWidth(0, 200)  # Columna "Nombre"
         self.tabla_inventario.setColumnWidth(1, 200)  # Columna "Marca"
         self.tabla_inventario.setColumnWidth(2, 200)  # Columna "Precio"
@@ -161,15 +167,18 @@ class InventarioVentana(QWidget):
         layout_inferior = QHBoxLayout()
 
 
-        boton_regresar=QPushButton("")
+        boton_regresar=QPushButton("Regresar")
         boton_regresar.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/flecha_regresar.png'))
         boton_regresar.setIconSize(QSize(50,50))
-        boton_regresar.setFixedSize(50, 50)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_regresar.resize(300,300)
+        boton_regresar.setFixedSize(120, 70)  # Establece el tamaño fijo en 100x100 píxeles
         boton_regresar.setStyleSheet("""
                                     QPushButton {
                                     border: none;
                                     background-color: transparent;
                                     padding: 0px;
+                                    font:bold; 
+                                    font-size:15px;
                                     }
                                     QPushButton:pressed {
                                     background-color: transparent;
@@ -183,9 +192,9 @@ class InventarioVentana(QWidget):
         layout_inferior.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         boton_logo=QPushButton("")
-        boton_logo.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logoBD.png'))
-        boton_logo.setIconSize(QSize(50,50))
-        boton_logo.setFixedSize(50, 50)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_logo.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png'))
+        boton_logo.setIconSize(QSize(70,70))
+        boton_logo.setFixedSize(100,100)  # Establece el tamaño fijo en 100x100 píxeles
         boton_logo.setStyleSheet("""
                                     QPushButton {
                                     border: none;
@@ -209,12 +218,12 @@ class InventarioVentana(QWidget):
 ###agregar layouts###
         main_layout.addLayout(titulo_acciones_layout)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout.setSpacing(10)
         main_layout.addLayout(top_buttons_layout)
-        main_layout.addSpacing(20)
+        main_layout.addSpacing(15)
         main_layout.addLayout(layout_busqueda)
         main_layout.addStretch(0)
-        main_layout.addSpacing(50)
+        main_layout.addSpacing(15)
         main_layout.addLayout(layout_tabla)
         main_layout.addStretch(1)
         main_layout.addLayout(layout_inferior)
@@ -229,12 +238,12 @@ class InventarioVentana(QWidget):
     def agregar_info_tabla(self):
         fila=self.tabla_inventario.rowCount()
         self.tabla_inventario.insertRow(fila)
-        self.tabla_inventario.setItem(fila, 0, QTableWidgetItem(f"Tinte de cabello"))
-        self.tabla_inventario.setItem(fila, 1, QTableWidgetItem(f"Loreal Paris"))
-        self.tabla_inventario.setItem(fila, 2, QTableWidgetItem(f"99Mx"))
-        self.tabla_inventario.setItem(fila, 3, QTableWidgetItem(f"10Pz"))
+        self.tabla_inventario.setItem(fila, 0, QTableWidgetItem(f""))
+        self.tabla_inventario.setItem(fila, 1, QTableWidgetItem(f""))
+        self.tabla_inventario.setItem(fila, 2, QTableWidgetItem(f""))
+        self.tabla_inventario.setItem(fila, 3, QTableWidgetItem(f""))
             
-        datos = ["Tinte de cabello", "Loreal Paris", "99Mx", "10Pz"]
+        datos = ["", " ", "", ""]
         color_beige = QBrush(QColor("#F5F5DC"))  # Beige
 
         for columna, texto in enumerate(datos):
