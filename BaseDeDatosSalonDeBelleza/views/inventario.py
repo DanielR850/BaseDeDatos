@@ -124,7 +124,7 @@ class InventarioVentana(QWidget):
         self.tabla_inventario = QTableWidget()
         self.tabla_inventario.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
-        self.tabla_inventario.setMinimumWidth(824)
+        self.tabla_inventario.setMinimumWidth(858)
         self.tabla_inventario.setMinimumHeight(500)
 
 
