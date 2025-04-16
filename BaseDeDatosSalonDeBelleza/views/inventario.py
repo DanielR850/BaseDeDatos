@@ -2,7 +2,9 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication,QWidget,QLabel,
-    QLineEdit,QPushButton,QVBoxLayout,QHBoxLayout, QTableWidget, QTableWidgetItem,QSpacerItem, QSizePolicy,QHeaderView)
+    QLineEdit,QPushButton,QVBoxLayout,
+    QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QSpacerItem, QSizePolicy,QHeaderView,QMessageBox)
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 from PyQt5.QtCore import Qt,QSize 
 from PyQt5 import QtGui
@@ -156,6 +158,53 @@ class InventarioVentana(QWidget):
         layout_tabla.addStretch()
 ###Layout de logo e imagenes de acciones (Regresar, salir, etc.)###
 
+        layout_inferior = QHBoxLayout()
+
+
+        boton_regresar=QPushButton("")
+        boton_regresar.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/flecha_regresar.png'))
+        boton_regresar.setIconSize(QSize(50,50))
+        boton_regresar.setFixedSize(50, 50)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_regresar.setStyleSheet("""
+                                    QPushButton {
+                                    border: none;
+                                    background-color: transparent;
+                                    padding: 0px;
+                                    }
+                                    QPushButton:pressed {
+                                    background-color: transparent;
+                                    }
+                                    """)
+        boton_regresar.clicked.connect(self.regresar)
+        
+    
+
+        layout_inferior.addWidget(boton_regresar)
+        layout_inferior.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        boton_logo=QPushButton("")
+        boton_logo.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logoBD.png'))
+        boton_logo.setIconSize(QSize(50,50))
+        boton_logo.setFixedSize(50, 50)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_logo.setStyleSheet("""
+                                    QPushButton {
+                                    border: none;
+                                    background-color: transparent;
+                                    padding: 0px;
+                                    }
+                                    QPushButton:pressed {
+                                    background-color: transparent;
+                                    }
+                                    """)
+        boton_logo.clicked.connect(self.info)
+        
+    
+
+        layout_inferior.addWidget(boton_logo)      
+
+
+
+
 ####################################################################
 ###agregar layouts###
         main_layout.addLayout(titulo_acciones_layout)
@@ -168,6 +217,7 @@ class InventarioVentana(QWidget):
         main_layout.addSpacing(50)
         main_layout.addLayout(layout_tabla)
         main_layout.addStretch(1)
+        main_layout.addLayout(layout_inferior)
 
         self.setLayout(main_layout)
 ####################################################################
@@ -183,6 +233,12 @@ class InventarioVentana(QWidget):
         self.tabla_inventario.setItem(fila, 1, QTableWidgetItem(f"Loreal Paris"))
         self.tabla_inventario.setItem(fila, 2, QTableWidgetItem(f"99Mx"))
         self.tabla_inventario.setItem(fila, 3, QTableWidgetItem(f"10Pz"))
+    
+    def regresar(self):
+        print("Has regresado a la pantalla anterior")
+    
+    def info(self):
+          QMessageBox.information(self, "Información", "Este sistema fue hecho por el equipo 1 de bases de datos de la FIME")
         
 
 ####################################################################
