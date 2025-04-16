@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication,QWidget,QLabel,
     QLineEdit,QPushButton,QVBoxLayout,QHBoxLayout, QTableWidget, QTableWidgetItem)
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QIcon
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 
@@ -18,7 +18,7 @@ class InventarioVentana(QWidget):
                                                         stop: 0 pink,
                                                         stop: 1 white
                                                                     );""")
-
+        self.setWindowIcon(QIcon("resources/logoBD.ico"))
 
 
 
