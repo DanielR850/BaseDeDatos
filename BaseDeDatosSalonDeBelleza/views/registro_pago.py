@@ -78,8 +78,115 @@ class RegistroPago(QWidget):
         layout_botones.addWidget(self.input_buscar)
         layout_botones.addWidget(boton_eliminar)
         layout_botones.addWidget(self.input_eliminar)
+####################################################################
+###Layout de tabla de pagos registrados.###
+        layout_tabla = QHBoxLayout()
+
+        self.tabla_inventario = QTableWidget()
+        self.tabla_inventario.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
+        self.tabla_inventario.setMinimumWidth(858)
+        self.tabla_inventario.setMinimumHeight(500)
 
 
+        self.tabla_inventario.setColumnCount(4)
+        self.tabla_inventario.setRowCount(13)
+        self.tabla_inventario.setHorizontalHeaderLabels(["Cliente","Monto","Método","Fecha"])
+        self.tabla_inventario.horizontalHeader().setStyleSheet("""
+        QHeaderView::section {
+        background-color: #CF6978;
+        color: black;
+        font-weight: bold;
+        font-size:27px;
+        font:sans-serif;                                                     
+        }
+        """)
+        self.tabla_inventario.verticalHeader().setStyleSheet("""
+        QHeaderView::section {
+        background-color: #CF6978;
+        color: white;
+        font-weight: bold;
+        font-size: 20px;
+        }
+        """)
+        self.tabla_inventario.setStyleSheet("""
+QTableWidget {
+    background-color: #F5F5DC;
+    font-size: 15px;
+    font: bold;
+    font-family: 'sans-serif';
+}
+QHeaderView::section {
+    background-color: #CF6978;
+    color: black;
+    font-weight: bold;
+    font-size: 27px;
+    font: sans-serif;
+}
+QTableCornerButton::section {
+    background-color: #CF6978;
+    border: 1px solid #999;
+}
+""")
+
+        self.tabla_inventario.setColumnWidth(0, 200)  # Columna "Nombre"
+        self.tabla_inventario.setColumnWidth(1, 200)  # Columna "Marca"
+        self.tabla_inventario.setColumnWidth(2, 200)  # Columna "Precio"
+        self.tabla_inventario.setColumnWidth(3, 200)  # Columna "Stock"
+
+
+        layout_tabla.addStretch()
+        layout_tabla.addWidget(self.tabla_inventario)
+        layout_tabla.addStretch()
+####################################################################
+###Layout de logo y botón de regresar###
+
+        layout_inferior = QHBoxLayout()
+
+
+        boton_regresar=QPushButton("Regresar")
+        boton_regresar.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/flecha_regresar.png'))
+        boton_regresar.setIconSize(QSize(50,50))
+        boton_regresar.resize(300,300)
+        boton_regresar.setFixedSize(120, 70)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_regresar.setStyleSheet("""
+                                    QPushButton {
+                                    border: none;
+                                    background-color: transparent;
+                                    padding: 0px;
+                                    font:bold; 
+                                    font-size:15px;
+                                    }
+                                    QPushButton:pressed {
+                                    background-color: transparent;
+                                    }
+                                    """)
+
+        
+    
+
+        layout_inferior.addWidget(boton_regresar)
+        layout_inferior.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        boton_logo=QPushButton("")
+        boton_logo.setIcon(QIcon('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png'))
+        boton_logo.setIconSize(QSize(70,70))
+        boton_logo.setFixedSize(100,100)  # Establece el tamaño fijo en 100x100 píxeles
+        boton_logo.setStyleSheet("""
+                                    QPushButton {
+                                    border: none;
+                                    background-color: transparent;
+                                    padding: 0px;
+                                    }
+                                    QPushButton:pressed {
+                                    background-color: transparent;
+                                    }
+                                    """)
+        
+    
+
+        layout_inferior.addWidget(boton_logo) 
+####################################################################
 ###Área de layouts###
         main_layout.addLayout(titulo_layout)        
         main_layout.addStretch(0)
@@ -87,6 +194,10 @@ class RegistroPago(QWidget):
         main_layout.addLayout(layout_botones)
         main_layout.addStretch(32)
         main_layout.setSpacing(10)
+        main_layout.addLayout(layout_tabla)
+        main_layout.addStretch(60)
+        main_layout.addStretch(1)
+        main_layout.addLayout(layout_inferior)
         self.setLayout(main_layout)
         
 ####################################################################
