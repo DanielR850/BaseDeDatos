@@ -16,8 +16,8 @@ class InventarioVentana(QWidget):
                         background: qlineargradient(
                         x1: 0, y1: 0,
                         x2: 0, y2: 1,
-                        stop: 0 #FFB6C1,    /* Rosa oscuro */
-                        stop: 1 white
+                        stop: 0 #EBAAAA,    /* Rosa oscuro */
+                        stop: 1 #EADAD3
                         );
                         """)
 
@@ -27,7 +27,7 @@ class InventarioVentana(QWidget):
 ###Layout del titulo####
         titulo_acciones_layout=QHBoxLayout()
         titulo_label=QLabel("Inventario")
-        titulo_label.setStyleSheet("color:black; font-size:35px;font:bold; background-color:pink; font:roboto;")
+        titulo_label.setStyleSheet("color:black; font-size:35px;font:bold; background-color:#EBAAAA; font-family:'roboto';")
         titulo_label.setAlignment(Qt.AlignCenter)
         titulo_acciones_layout.addWidget(titulo_label)
 ####################################################################
@@ -92,7 +92,7 @@ class InventarioVentana(QWidget):
         self.input_busqueda=QLineEdit()
         self.input_busqueda.setStyleSheet("background-color:white;font-size:20px;")
         self.input_busqueda.setFixedWidth(350)
-        self.input_busqueda.setPlaceholderText("Ingrese el id (1,2,3,..) del producto")
+        self.input_busqueda.setPlaceholderText("Buscar por ID")
         self.input_busqueda.setAlignment(Qt.AlignLeft)
 
         boton_buscar=QPushButton("")
@@ -130,9 +130,10 @@ class InventarioVentana(QWidget):
         self.tabla_inventario.horizontalHeader().setStyleSheet("""
         QHeaderView::section {
         background-color: #CF6978;
-        color: white;
+        color: black;
         font-weight: bold;
-        font-size:20px;
+        font-size:23px;
+        font:sans-serif;
         }
         """)
         self.tabla_inventario.verticalHeader().setStyleSheet("""
@@ -143,7 +144,7 @@ class InventarioVentana(QWidget):
         font-size: 20px;
         }
         """)
-        self.tabla_inventario.setStyleSheet("font-size:15px; font:bold;")
+        self.tabla_inventario.setStyleSheet("font-size:15px; font:bold; font-family:'sans-serif';")
         self.tabla_inventario.setColumnWidth(0, 200)  # Columna "Nombre"
         self.tabla_inventario.setColumnWidth(1, 200)  # Columna "Marca"
         self.tabla_inventario.setColumnWidth(2, 200)  # Columna "Precio"
@@ -153,7 +154,7 @@ class InventarioVentana(QWidget):
         layout_tabla.addStretch()
         layout_tabla.addWidget(self.tabla_inventario)
         layout_tabla.addStretch()
-
+###Layout de logo e imagenes de acciones (Regresar, salir, etc.)###
 
 ####################################################################
 ###agregar layouts###
