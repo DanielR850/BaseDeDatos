@@ -1,26 +1,84 @@
-import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTextEdit,
     QComboBox, QVBoxLayout, QHBoxLayout, QGridLayout
 )
 from PyQt5.QtGui import QPainter, QBrush, QLinearGradient, QColor, QFont, QPixmap
 from PyQt5.QtCore import Qt
+import sys
+import os
 
 class AgregarPromocion(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Agregar Promoción")
-        self.resize(800, 500)
-        
-        
-        self.btn_regresar = QPushButton("⤺ Regresar")
-        self.btn_regresar.setStyleSheet("background-color: transparent; font: 12pt Arial;")
-        self.btn_regresar.setFixedHeight(40)
-        self.btn_regresar.clicked.connect(self.close)  # ← Función de regresar
+        self.showFullScreen()  # Ahora abre en pantalla completa
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #f8c8dc,
+                    stop: 1 #fefefe
+                );
+                font-family: 'Poppins';
+            }
+            QLabel {
+                background-color: transparent;
+                font-size: 16pt;
+                color: #000000;
+            }
+            QLineEdit, QTextEdit, QComboBox {
+                background-color: #e5d3c5;
+                border: 2px solid #000000;
+                border-radius: 10px;
+                padding: 8px;
+                font-size: 14pt;
+                min-height: 40px;
+            }
+            QPushButton#regresar, QPushButton#agregar {
+                background-color: #231f20;
+                color: #fcb3b3;
+                font-family: 'Poppins';
+                padding: 10px;
+                border-radius: 20px;
+                font-size: 16pt;
+                min-width: 200px;
+            }
+            QPushButton#regresar:hover, QPushButton#agregar:hover {
+                background-color: #333333;
+            }
+        """)
 
-        self.titulo = QLabel("Agregar Promoción")
-        self.titulo.setFont(QFont("Arial", 20, QFont.Bold))
-        self.titulo.setAlignment(Qt.AlignCenter)
+        self.initUI()
+
+    def initUI(self):
+        layout_principal = QVBoxLayout()
+
+        # Botones y título
+        fila_superior = QHBoxLayout()
+
+        self.btn_regresar = QPushButton("⤺ Regresar")
+        self.btn_regresar.setObjectName("regresar")
+        self.btn_regresar.clicked.connect(self.close)
+
+        fila_superior.addWidget(self.btn_regresar, alignment=Qt.AlignLeft)
+        fila_superior.addStretch()
+
+        # Logo
+        self.logo = QLabel()
+        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
+        self.logo.setPixmap(pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        fila_superior.addWidget(self.logo, alignment=Qt.AlignRight)
+
+        layout_principal.addLayout(fila_superior)
+
+        titulo = QLabel("Agregar Promoción")
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-top: 10px; margin-bottom: 30px;")
+        layout_principal.addWidget(titulo)
+
+        # Formulario
+        grid = QGridLayout()
+        grid.setSpacing(30)
 
         self.nombre_label = QLabel("Nombre de la Promoción")
         self.nombre_input = QLineEdit()
@@ -43,28 +101,6 @@ class AgregarPromocion(QWidget):
         self.fecha_fin_combo = QComboBox()
         self.fecha_fin_combo.addItems(["Día", "Mes", "Año"])
 
-        self.btn_agregar = QPushButton("Agregar Promoción")
-        self.btn_agregar.setStyleSheet("background-color: lightgreen; font: 12pt Arial;")
-
-        self.logo = QLabel()
-        self.logo.setPixmap(QPixmap("./resources/logo_sinfondo.png").scaled(70, 70, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-
-        self.crear_layout()
-
-    def crear_layout(self):
-        layout_principal = QVBoxLayout()
-
-       
-        fila_superior = QHBoxLayout()
-        fila_superior.addWidget(self.btn_regresar, alignment=Qt.AlignLeft)
-        fila_superior.addStretch()
-        fila_superior.addWidget(self.titulo, stretch=1)
-        fila_superior.addStretch()
-
-        layout_principal.addLayout(fila_superior)
-
-        grid = QGridLayout()
-
         grid.addWidget(self.nombre_label, 0, 0)
         grid.addWidget(self.nombre_input, 1, 0)
 
@@ -83,22 +119,17 @@ class AgregarPromocion(QWidget):
         grid.addWidget(self.fecha_fin_label, 2, 2)
         grid.addWidget(self.fecha_fin_combo, 3, 2)
 
-        grid.addWidget(self.btn_agregar, 4, 1)
-        grid.addWidget(self.logo, 4, 2, alignment=Qt.AlignRight)
-
         layout_principal.addLayout(grid)
-        self.setLayout(layout_principal)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        gradient = QLinearGradient(0, 0, 0, self.height())
-        gradient.setColorAt(0.0, QColor("#e6a0a0"))
-        gradient.setColorAt(1.0, QColor("#e0cfcf"))
-        painter.setBrush(QBrush(gradient))
-        painter.drawRect(self.rect())
+        # Botón agregar
+        self.btn_agregar = QPushButton("Agregar Promoción")
+        self.btn_agregar.setObjectName("agregar")
+        layout_principal.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout_principal)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = AgregarPromocion()
-    window.show()
+    ventana = AgregarPromocion()
+    ventana.show()
     sys.exit(app.exec_())

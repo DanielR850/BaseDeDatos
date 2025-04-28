@@ -1,98 +1,160 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout
-from PyQt5.QtGui import QFont, QPixmap
+import os
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QComboBox
+)
+from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt
 
-class PaymentScreen(QWidget):
+class GenerarPago(QWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("Generar Pago")
+        self.showFullScreen()
+
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #f8c8dc,
+                    stop: 1 #fefefe
+                );
+                font-family: 'Poppins';
+            }
+            QLabel {
+                background-color: transparent;
+                font-size: 16pt;
+                color: #000000;
+                font-family: 'Poppins';
+            }
+            QLineEdit, QComboBox {
+                background-color: #e5d3c5;
+                border: 2px solid #000000;
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14pt;
+                min-width: 250px;
+                min-height: 41px;
+            }
+            QPushButton#regresar, QPushButton#salir {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton#regresar:hover, QPushButton#salir:hover {
+                color: gray;
+            }
+            QPushButton#pagar {
+                background-color: #231f20;
+                color: #fcb3b3;
+                font-family: 'Poppins';
+                padding: 15px;
+                border-radius: 20px;
+                font-size: 18pt;
+                min-width: 300px;
+                min-height: 80px;
+            }
+            QPushButton#pagar:hover {
+                background-color: #333333;
+            }
+        """)
+
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Generar Pago')
-        self.setGeometry(100, 100, 600, 400)
-        self.setStyleSheet("""background: qlineargradient(
-                                                        x1: 0, y1: 0,
-                                                        x2: 0, y2: 1,
-                                                        stop: 0 pink,
-                                                        stop: 1 white
-                                                                    );""")
+        layout_principal = QVBoxLayout()
+        layout_principal.setContentsMargins(100, 20, 100, 20)
 
-        
-        main_layout = QVBoxLayout()
-        header_layout = QHBoxLayout()
-        form_layout = QVBoxLayout()
-        bottom_layout = QHBoxLayout()
+        # Botones superiores
+        botones_superiores = QHBoxLayout()
+        self.btn_regresar = QPushButton("Regresar")
+        self.btn_regresar.setObjectName("regresar")
+        self.btn_salir = QPushButton("Salir")
+        self.btn_salir.setObjectName("salir")
+        self.btn_salir.clicked.connect(self.close)
 
-        
-        back_button = QPushButton('Regresar')
-        back_button.setFont(QFont('Arial', 12))
-        back_button.setStyleSheet("background-color: black; color: pink;")
+        botones_superiores.addWidget(self.btn_regresar)
+        botones_superiores.addStretch()
+        botones_superiores.addWidget(self.btn_salir)
+        layout_principal.addLayout(botones_superiores)
 
-        logo_label = QLabel()
-        logo_label.setPixmap(QPixmap('logo.png'))  
-        logo_label.setAlignment(Qt.AlignCenter)
+        # Logo
+        logo = QLabel()
+        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
+        logo.setPixmap(pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAlignment(Qt.AlignCenter)
+        layout_principal.addWidget(logo)
 
+        # Título
+        titulo = QLabel("Generar Pago")
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 30px;")
+        layout_principal.addWidget(titulo)
 
-        exit_button = QPushButton('Salir')
-        exit_button.setFont(QFont('Arial', 12))
-        exit_button.setStyleSheet("background-color: black; color: pink;")
+        # Formulario
+        campos_centrados = QVBoxLayout()
+        campos_centrados.setAlignment(Qt.AlignCenter)
 
-    
-        header_layout.addWidget(back_button)
-        header_layout.addWidget(logo_label)
-        header_layout.addWidget(exit_button)
+        # Primera fila: 3 campos
+        fila1 = QHBoxLayout()
+        fila1.setSpacing(50)
+        self.cita = QLineEdit()
+        self.nombre = QLineEdit()
+        self.telefono = QLineEdit()
 
-        
-        cita_label = QLabel('Cita')
-        cita_label.setFont(QFont('Arial', 12))
-        cita_input = QLineEdit()
+        vbox_cita = self.create_field_group("Cita", self.cita)
+        vbox_nombre = self.create_field_group("Nombre", self.nombre)
+        vbox_telefono = self.create_field_group("Teléfono", self.telefono)
 
-        nombre_label = QLabel('Nombre')
-        nombre_label.setFont(QFont('Arial', 12))
-        nombre_input = QLineEdit()
+        fila1.addLayout(vbox_cita)
+        fila1.addLayout(vbox_nombre)
+        fila1.addLayout(vbox_telefono)
 
-        telefono_label = QLabel('Teléfono')
-        telefono_label.setFont(QFont('Arial', 12))
-        telefono_input = QLineEdit()
+        # Segunda fila: 3 campos
+        fila2 = QHBoxLayout()
+        fila2.setSpacing(50)
+        self.servicio = QLineEdit()
+        self.empleado = QLineEdit()
+        self.metodo_pago = QComboBox()
+        self.metodo_pago.addItems(["Efectivo", "Tarjeta", "Transferencia"])
 
-        servicio_label = QLabel('Servicio')
-        servicio_label.setFont(QFont('Arial', 12))
-        servicio_input = QLineEdit()
+        vbox_servicio = self.create_field_group("Servicio", self.servicio)
+        vbox_empleado = self.create_field_group("Empleado", self.empleado)
+        vbox_pago = self.create_field_group("Método de Pago", self.metodo_pago)
 
-        empleado_label = QLabel('Empleado')
-        empleado_label.setFont(QFont('Arial', 12))
-        empleado_input = QLineEdit()
+        fila2.addLayout(vbox_servicio)
+        fila2.addLayout(vbox_empleado)
+        fila2.addLayout(vbox_pago)
 
-        form_layout.addWidget(cita_label)
-        form_layout.addWidget(cita_input)
-        form_layout.addWidget(nombre_label)
-        form_layout.addWidget(nombre_input)
-        form_layout.addWidget(telefono_label)
-        form_layout.addWidget(telefono_input)
-        form_layout.addWidget(servicio_label)
-        form_layout.addWidget(servicio_input)
-        form_layout.addWidget(empleado_label)
-        form_layout.addWidget(empleado_input)
+        campos_centrados.addLayout(fila1)
+        campos_centrados.addSpacing(40)
+        campos_centrados.addLayout(fila2)
 
-        
-        realizar_pago_button = QPushButton('Realizar Pago')
-        realizar_pago_button.setFont(QFont('Arial', 14))
-        realizar_pago_button.setStyleSheet("background-color: black; color: pink;")
+        layout_principal.addLayout(campos_centrados)
 
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(realizar_pago_button)
-        bottom_layout.addStretch()
+        # Botón Pagar
+        self.btn_pagar = QPushButton("Realizar Pago")
+        self.btn_pagar.setObjectName("pagar")
+        layout_principal.addSpacing(30)
+        layout_principal.addWidget(self.btn_pagar, alignment=Qt.AlignCenter)
 
-        
-        main_layout.addLayout(header_layout)
-        main_layout.addLayout(form_layout)
-        main_layout.addLayout(bottom_layout)
+        self.setLayout(layout_principal)
 
-        self.setLayout(main_layout)
+    def create_field_group(self, label_text, input_widget):
+        group = QVBoxLayout()
+        label = QLabel(label_text)
+        label.setAlignment(Qt.AlignCenter)
+        group.addWidget(label)
+        group.addWidget(input_widget)
+        return group
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    screen = PaymentScreen()
-    screen.show()
+    ventana = GenerarPago()
+    ventana.show()
     sys.exit(app.exec_())

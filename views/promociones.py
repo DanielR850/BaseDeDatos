@@ -4,25 +4,41 @@ from PyQt5.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QHeaderView, QLineEdit
 )
-from PyQt5.QtGui import QIcon, QColor, QPainter, QPen, QPixmap, QIcon 
+from PyQt5.QtGui import QIcon, QColor, QPixmap
 from PyQt5.QtCore import Qt, QSize
 
 class VentanaPromociones(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Promociones")
-        self.setMinimumSize(900, 650)
+        self.showFullScreen()
+
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1: 0, y1: 0,
+                    x2: 0, y2: 1,
+                    stop: 0 #EBAAAA,
+                    stop: 1 #EADAD3
+                );
+                font-family: 'Poppins';
+            }
+            QPushButton#regresar, QPushButton#salir {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton#regresar:hover, QPushButton#salir:hover {
+                color: gray;
+            }
+        """)
 
         # Widget principal
         widget_principal = QWidget()
-        widget_principal.setStyleSheet("""
-            background: qlineargradient(
-                x1: 0, y1: 0,
-                x2: 0, y2: 1,
-                stop: 0 #EBAAAA,    /* Rosa oscuro */
-                stop: 1 #EADAD3
-            );
-        """)
         self.setCentralWidget(widget_principal)
 
         layout_principal = QVBoxLayout(widget_principal)
@@ -31,17 +47,21 @@ class VentanaPromociones(QMainWindow):
 
         # --- Barra superior ---
         layout_superior = QHBoxLayout()
-        boton_regresar = QPushButton()
-        boton_regresar.setIcon(QIcon('c:/Users/agnav/OneDrive - Universidad Autonoma de Nuevo León/Desktop/Base de datos proyecto/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/flecha_regresar.png'))
-        boton_regresar.setIconSize(QSize(40, 40))
-        boton_regresar.setStyleSheet("border: none; background: transparent;")
-        boton_regresar.clicked.connect(self.close)
-        layout_superior.addWidget(boton_regresar)
-        layout_superior.addStretch()
-        layout_principal.addLayout(layout_superior)
-        
 
-        # Barra de búsqueda
+        self.btn_regresar = QPushButton("Regresar")
+        self.btn_regresar.setObjectName("regresar")
+        self.btn_salir = QPushButton("Salir")
+        self.btn_salir.setObjectName("salir")
+        self.btn_salir.clicked.connect(self.close)
+
+        layout_superior.addWidget(self.btn_regresar)
+        layout_superior.addStretch()
+        layout_superior.addWidget(self.btn_salir)
+
+        layout_principal.addLayout(layout_superior)
+
+        # --- Barra de búsqueda ---
+        layout_busqueda = QHBoxLayout()
         self.busqueda = QLineEdit()
         self.busqueda.setPlaceholderText("Buscar...")
         self.busqueda.setStyleSheet("""
@@ -53,12 +73,10 @@ class VentanaPromociones(QMainWindow):
                 min-width: 250px;
             }
         """)
-        
-
-        layout_superior.addWidget(boton_regresar)
-        layout_superior.addStretch(30)
-        layout_superior.addWidget(self.busqueda)
-        layout_principal.addLayout(layout_superior)
+        layout_busqueda.addStretch()
+        layout_busqueda.addWidget(self.busqueda)
+        layout_busqueda.addStretch()
+        layout_principal.addLayout(layout_busqueda)
 
         # --- Título ---
         titulo = QLabel("Promociones")
@@ -67,15 +85,14 @@ class VentanaPromociones(QMainWindow):
             font: bold 38px 'Roboto';
             color: black;
             padding: 15px;
-            background: transparent;                 
+            background: transparent;
         """)
-        
         layout_principal.addWidget(titulo)
 
-        
+        # --- Botones principales ---
         layout_botones = QHBoxLayout()
         layout_botones.setSpacing(25)
-        
+
         for texto, color in [
             ("Agregar promoción", "#c6fcb3"),
             ("Modificar promoción", "#fcfbb3"),
@@ -91,24 +108,19 @@ class VentanaPromociones(QMainWindow):
                     color: black;
                     min-width: 200px;
                 }}
-                QPushButton:hover {{ 
-                    background: {'#689F38' if color == "#c6fcb3" else 
-                                '#FFB300' if color == "#fcfbb3" else 
+                QPushButton:hover {{
+                    background: {'#689F38' if color == "#c6fcb3" else
+                                '#FFB300' if color == "#fcfbb3" else
                                 '#C62828'};
                 }}
             """)
             layout_botones.addWidget(boton)
-        
+
         layout_principal.addLayout(layout_botones)
 
-        # --- Tabla con nuevo estilo integrado ---
-        self.tabla = QTableWidget(6,4)
-        self.tabla.setColumnCount(4)
-        self.tabla.setHorizontalHeaderLabels([
-            "Descripción", "Servicios", "Precio", "Válido hasta"
-        ])
-        
-        # Configuración de estilo de tabla
+        # --- Tabla de promociones ---
+        self.tabla = QTableWidget(6, 4)
+        self.tabla.setHorizontalHeaderLabels(["Descripción", "Servicios", "Precio", "Válido hasta"])
         self.tabla.setStyleSheet("""
             QTableWidget {
                 background: #ffefe3;
@@ -128,24 +140,19 @@ class VentanaPromociones(QMainWindow):
                 padding: 15px;
             }
         """)
-        
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.verticalHeader().setVisible(False)
-        self.tabla.setShowGrid(True) 
+        self.tabla.setShowGrid(True)
 
         layout_principal.addWidget(self.tabla)
 
+        # --- Logo ---
         lbl_logo = QLabel()
-        pixmap = QPixmap('c:/Users/agnav/OneDrive - Universidad Autonoma de Nuevo León/Desktop/Base de datos proyecto/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png').scaled(80,80, Qt.KeepAspectRatio)
+        pixmap = QPixmap('c:/Users/agnav/OneDrive - Universidad Autonoma de Nuevo León/Desktop/Base de datos proyecto/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio)
         lbl_logo.setPixmap(pixmap)
         lbl_logo.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         lbl_logo.setStyleSheet("padding: 0 10px 10px 0; background: transparent;")
-        container = QWidget()
-        layout_container = QVBoxLayout(container)
-        layout_container.addWidget(self.tabla)
-        layout_container.addWidget(lbl_logo, alignment=Qt.AlignRight | Qt.AlignBottom)
-        layout_principal.addWidget(container)
-        
+        layout_principal.addWidget(lbl_logo, alignment=Qt.AlignRight | Qt.AlignBottom)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -1,138 +1,185 @@
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLineEdit, QTextEdit,
-    QPushButton, QFormLayout, QMessageBox
-)
 import sys
 import os
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QGridLayout, QMessageBox
+)
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
 
 class ModificarProducto(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Modificar Producto")
-        self.showFullScreen()  # Inicia en pantalla completa
+        self.showFullScreen()
 
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(
-                    x1: 0, y1: 0,
-                    x2: 0, y2: 1,
-                    stop: 0 pink,
-                    stop: 1 white
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #f8c8dc,
+                    stop: 1 #fefefe
                 );
-                font-family: 'Segoe UI';
-                font-size: 14pt;
+                font-family: 'Poppins';
             }
-
-            QLineEdit, QTextEdit {
-                background-color: white;
-                border: 1px solid #ccc;
-                padding: 5px;
-                border-radius: 5px;
+            QLabel {
+                background-color: transparent;
+                font-size: 16pt;
+                color: #000000;
+                font-family: 'Poppins';
+                qproperty-alignment: 'AlignCenter';
             }
-
-            QPushButton {
-                background-color: #f06292;
-                color: white;
-                padding: 10px;
-                border: none;
+            QLineEdit {
+                background-color: #e5d3c5;
+                border: 2px solid #000000;
                 border-radius: 10px;
-                font-weight: bold;
+                padding: 10px;
+                font-size: 14pt;
+                min-width: 180px;
+                min-height: 41px;
             }
-
-            QPushButton:hover {
-                background-color: #ec407a;
+            QPushButton#regresar, QPushButton#salir {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton#regresar:hover, QPushButton#salir:hover {
+                color: gray;
+            }
+            QPushButton#agregar {
+                background-color: #231f20;
+                color: #fcb3b3;
+                font-family: 'Poppins';
+                padding: 15px;
+                border-radius: 20px;
+                font-size: 18pt;
+                min-width: 250px;
+                min-height: 80px;
+            }
+            QPushButton#agregar:hover {
+                background-color: #333333;
             }
         """)
 
         self.initUI()
 
     def initUI(self):
-        layout = QFormLayout()
+        layout_principal = QVBoxLayout()
 
-        self.id_input = QLineEdit()
-        self.nombre_input = QLineEdit()
-        self.precio_input = QLineEdit()
-        self.categoria_input = QLineEdit()
-        self.descripcion_input = QTextEdit()
+        # Botones superiores
+        botones_superiores = QHBoxLayout()
 
-        self.buscar_btn = QPushButton("Buscar")
-        self.modificar_btn = QPushButton("Modificar")
-        self.cancelar_btn = QPushButton("Cancelar")
+        self.btn_regresar = QPushButton("Regresar")
+        self.btn_regresar.setObjectName("regresar")
+        self.btn_salir = QPushButton("Salir")
+        self.btn_salir.setObjectName("salir")
+        self.btn_salir.clicked.connect(self.close)
 
-        self.buscar_btn.clicked.connect(self.buscar_producto)
-        self.modificar_btn.clicked.connect(self.modificar_producto)
-        self.cancelar_btn.clicked.connect(self.close)
+        botones_superiores.addWidget(self.btn_regresar)
+        botones_superiores.addStretch()
+        botones_superiores.addWidget(self.btn_salir)
 
-        layout.addRow("ID Producto:", self.id_input)
-        layout.addRow(self.buscar_btn)
-        layout.addRow("Nombre:", self.nombre_input)
-        layout.addRow("Precio:", self.precio_input)
-        layout.addRow("Categoría:", self.categoria_input)
-        layout.addRow("Descripción:", self.descripcion_input)
-        layout.addRow(self.modificar_btn, self.cancelar_btn)
+        layout_principal.addLayout(botones_superiores)
 
-        self.setLayout(layout)
+        # Logo arriba
+        logo = QLabel()
+        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
+        logo.setPixmap(pixmap.scaledToHeight(100))
+        logo.setAlignment(Qt.AlignCenter)
+        layout_principal.addWidget(logo)
 
-    def buscar_producto(self):
-        id_producto = self.id_input.text().strip()
-        if not id_producto:
-            QMessageBox.warning(self, "Advertencia", "Ingresa un ID de producto para buscar.")
-            return
+        # Título
+        titulo = QLabel("Modificar Producto")
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 20px;")
+        layout_principal.addWidget(titulo)
 
-        if not os.path.exists("productos.txt"):
-            QMessageBox.warning(self, "Archivo no encontrado", "No se encontró el archivo de productos.")
-            return
+        # Formulario
+        campos_centrados = QVBoxLayout()
+        campos_centrados.setAlignment(Qt.AlignCenter)
 
-        encontrado = False
-        with open("productos.txt", "r", encoding="utf-8") as f:
-            lineas = f.readlines()
-            for linea in lineas:
-                partes = linea.strip().split(",")
-                if partes[0] == id_producto:
-                    self.nombre_input.setText(partes[1])
-                    self.precio_input.setText(partes[2])
-                    self.categoria_input.setText(partes[3])
-                    self.descripcion_input.setPlainText(",".join(partes[4:]))
-                    encontrado = True
-                    break
+        fila1 = QHBoxLayout()
+        fila1.setSpacing(50)
+        self.id_producto = QLineEdit()
+        self.id_producto.setEnabled(False)
+        self.nombre = QLineEdit()
+        self.marca = QLineEdit()
 
-        if not encontrado:
-            QMessageBox.information(self, "No encontrado", "Producto no encontrado con ese ID.")
+        vbox_id = QVBoxLayout()
+        vbox_id.addWidget(self.create_label_centered("ID del Producto"))
+        vbox_id.addWidget(self.id_producto)
+
+        vbox_nombre = QVBoxLayout()
+        vbox_nombre.addWidget(self.create_label_centered("Nombre"))
+        vbox_nombre.addWidget(self.nombre)
+
+        vbox_marca = QVBoxLayout()
+        vbox_marca.addWidget(self.create_label_centered("Marca"))
+        vbox_marca.addWidget(self.marca)
+
+        fila1.addLayout(vbox_id)
+        fila1.addLayout(vbox_nombre)
+        fila1.addLayout(vbox_marca)
+
+        fila2 = QHBoxLayout()
+        fila2.setSpacing(100)
+        self.precio = QLineEdit()
+        self.stock = QLineEdit()
+
+        vbox_precio = QVBoxLayout()
+        vbox_precio.addWidget(self.create_label_centered("Precio"))
+        vbox_precio.addWidget(self.precio)
+
+        vbox_stock = QVBoxLayout()
+        vbox_stock.addWidget(self.create_label_centered("Stock"))
+        vbox_stock.addWidget(self.stock)
+
+        fila2.addLayout(vbox_precio)
+        fila2.addLayout(vbox_stock)
+
+        campos_centrados.addLayout(fila1)
+        campos_centrados.addSpacing(50)
+        campos_centrados.addLayout(fila2)
+
+        layout_principal.addLayout(campos_centrados)
+
+        # Botón modificar producto
+        self.btn_agregar = QPushButton("Modificar Producto")
+        self.btn_agregar.setObjectName("agregar")
+        self.btn_agregar.clicked.connect(self.modificar_producto)
+        layout_principal.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout_principal)
+
+    def create_label_centered(self, text):
+        label = QLabel(text)
+        label.setAlignment(Qt.AlignCenter)
+        return label
 
     def modificar_producto(self):
-        id_producto = self.id_input.text().strip()
-        nombre = self.nombre_input.text().strip()
-        precio = self.precio_input.text().strip()
-        categoria = self.categoria_input.text().strip()
-        descripcion = self.descripcion_input.toPlainText().strip()
+        nombre = self.nombre.text().strip()
+        marca = self.marca.text().strip()
+        precio = self.precio.text().strip()
+        stock = self.stock.text().strip()
 
-        if not all([id_producto, nombre, precio, categoria]):
-            QMessageBox.warning(self, "Faltan datos", "Por favor, llena todos los campos obligatorios.")
+        if not all([nombre, marca, precio, stock]):
+            QMessageBox.warning(self, "Faltan datos", "Por favor, llena todos los campos.")
             return
 
-        if not os.path.exists("productos.txt"):
-            QMessageBox.warning(self, "Archivo no encontrado", "No se encontró el archivo de productos.")
-            return
+        try:
+            QMessageBox.information(self, "Guardado", "Producto modificado correctamente.")
+            self.nombre.clear()
+            self.marca.clear()
+            self.precio.clear()
+            self.stock.clear()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo modificar el producto:\n{str(e)}")
 
-        actualizado = False
-        nuevas_lineas = []
-        with open("productos.txt", "r", encoding="utf-8") as f:
-            for linea in f:
-                partes = linea.strip().split(",")
-                if partes[0] == id_producto:
-                    nuevas_lineas.append(f"{id_producto},{nombre},{precio},{categoria},{descripcion}\n")
-                    actualizado = True
-                else:
-                    nuevas_lineas.append(linea)
-
-        if actualizado:
-            with open("productos.txt", "w", encoding="utf-8") as f:
-                f.writelines(nuevas_lineas)
-            QMessageBox.information(self, "Éxito", "Producto modificado correctamente.")
-        else:
-            QMessageBox.warning(self, "No encontrado", "No se encontró un producto con ese ID.")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ventana = ModificarProducto()
     ventana.show()

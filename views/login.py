@@ -11,6 +11,7 @@ class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Iniciar Sesión")
+        self.showFullScreen()
         self.setStyleSheet("""
         QWidget {
             background: qlineargradient(
