@@ -1,10 +1,19 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QLabel, QVBoxLayout,
-    QHBoxLayout, QVBoxLayout
+    QHBoxLayout
 )
 from PyQt5.QtGui import QPainter, QBrush, QLinearGradient, QColor, QPixmap
 from PyQt5.QtCore import Qt
+from views.inventario import InventarioVentana
+from views.promociones import VentanaPromociones  # ← NUEVO IMPORT
+from views.agendar_cita import AgendarCitaWindow
+from views.ventana_servicios import VentanaServicios
+from views.disponibilidad import DisponibilidadCitas
+from views.generar_pago import GenerarPago
+from views.registro_pago import RegistroPago
+import os
+
 
 class HomeWindow(QWidget):
     def __init__(self):
@@ -20,6 +29,7 @@ class HomeWindow(QWidget):
                 font: bold 14pt 'Poppins';
                 min-height: 80px;
                 min-width: 220px;
+                max-width: 220px;
             }
             QPushButton:hover {
                 background-color: #fcd9c7;
@@ -35,12 +45,6 @@ class HomeWindow(QWidget):
             QPushButton#salir:hover {
                 color: gray;
             }
-            QLabel#titulo {
-                font-size: 30pt;
-                font-weight: bold;
-                color: black;
-                font-family: 'Poppins';
-            }
         """)
 
         self.initUI()
@@ -49,93 +53,106 @@ class HomeWindow(QWidget):
         layout_principal = QVBoxLayout()
         layout_principal.setContentsMargins(50, 30, 50, 30)
 
-        # Botón superior (solo salir)
+        # Botón Salir
         top_buttons = QHBoxLayout()
         self.btn_salir = QPushButton("Salir ✕")
         self.btn_salir.setObjectName("salir")
-        self.btn_salir.clicked.connect(self.close)
-
+        self.btn_salir.clicked.connect(self.volver_a_login)
         top_buttons.addStretch()
         top_buttons.addWidget(self.btn_salir)
         layout_principal.addLayout(top_buttons)
 
-        # Título principal
-        titulo = QLabel("Menú Principal")
-        titulo.setObjectName("titulo")
-        titulo.setAlignment(Qt.AlignCenter)
-        layout_principal.addWidget(titulo)
+        contenedor_layout = QHBoxLayout()
+        contenedor_layout.setSpacing(50)
+        contenedor_layout.setAlignment(Qt.AlignCenter)
 
-        # Botones principales (horizontal)
-        botones_layout = QHBoxLayout()
-        botones_layout.setSpacing(40)
+        # Citas
+        self.citas_box = self.create_menu("Citas", [
+            ("Agendar Cita", self.abrir_agendar_cita),
+            ("Servicios", self.abrir_servicios),
+            ("Disponibilidad", self.abrir_disponibilidad)
+        ])
 
-        self.btn_citas = QPushButton("Citas")
-        self.btn_inventario = QPushButton("Inventario")
-        self.btn_opciones = QPushButton("Opciones")
+        contenedor_layout.addLayout(self.citas_box)
 
-        self.btn_citas.clicked.connect(self.toggle_submenu_citas)
-        self.btn_opciones.clicked.connect(self.toggle_submenu_opciones)
-        self.btn_inventario.clicked.connect(self.ir_inventario)
+        # Inventario
+        inventario_layout = QVBoxLayout()
+        btn_inventario = QPushButton("Inventario")
+        btn_inventario.clicked.connect(self.abrir_inventario)
+        inventario_layout.addWidget(btn_inventario)
+        inventario_layout.addStretch()
+        contenedor_layout.addLayout(inventario_layout)
 
-        botones_layout.addStretch()
-        botones_layout.addWidget(self.btn_citas)
-        botones_layout.addWidget(self.btn_inventario)
-        botones_layout.addWidget(self.btn_opciones)
-        botones_layout.addStretch()
+        # Opciones
+        self.opciones_box = self.create_menu("Opciones", [
+            ("Registro de Pagos", self.abrir_registro_pago),
+            ("Promociones", self.abrir_promociones)
+        ])
 
-        layout_principal.addLayout(botones_layout)
+        contenedor_layout.addLayout(self.opciones_box)
 
-        # Submenús con estilo de 3 campos horizontales
-        self.submenu_citas = QHBoxLayout()
-        self.submenu_citas_widgets = []
-        for text in ["Agendar Citas", "Resumen de Citas", "Disponibilidad de Citas"]:
-            box = QVBoxLayout()
-            btn = QPushButton(text)
-            btn.setMinimumSize(180, 60)
-            btn.hide()
-            box.addWidget(btn)
-            self.submenu_citas.addLayout(box)
-            self.submenu_citas_widgets.append(btn)
-        layout_principal.addLayout(self.submenu_citas)
+        layout_principal.addLayout(contenedor_layout)
 
-        self.submenu_opciones = QHBoxLayout()
-        self.submenu_opciones_widgets = []
-        for text in ["Generar Pagos", "Registro de Pagos", "Promociones"]:
-            box = QVBoxLayout()
-            btn = QPushButton(text)
-            btn.setMinimumSize(180, 60)
-            btn.hide()
-            box.addWidget(btn)
-            self.submenu_opciones.addLayout(box)
-            self.submenu_opciones_widgets.append(btn)
-        layout_principal.addLayout(self.submenu_opciones)
-
-        # Logo centrado
+        # Logo
         logo_label = QLabel()
-        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
+        ruta_logo = os.path.join(os.path.dirname(__file__), "resources", "logo_sinfondo.png")
+        pixmap = QPixmap(ruta_logo)
         logo_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo_label.setAlignment(Qt.AlignCenter)
         layout_principal.addWidget(logo_label)
 
         self.setLayout(layout_principal)
 
-    def toggle_submenu_citas(self):
-        for btn in self.submenu_citas_widgets:
-            btn.setVisible(not btn.isVisible())
-        # Ocultar submenu de opciones
-        for btn in self.submenu_opciones_widgets:
-            btn.hide()
+    def create_menu(self, title, actions):
+        layout = QVBoxLayout()
+        toggle_btn = QPushButton(title)
+        layout.addWidget(toggle_btn)
 
-    def toggle_submenu_opciones(self):
-        for btn in self.submenu_opciones_widgets:
-            btn.setVisible(not btn.isVisible())
-        # Ocultar submenu de citas
-        for btn in self.submenu_citas_widgets:
-            btn.hide()
+        submenu_widget = QWidget()
+        submenu_layout = QVBoxLayout()
+        submenu_layout.setSpacing(10)
+        submenu_widget.setLayout(submenu_layout)
+        submenu_widget.setVisible(False)
 
-    def ir_inventario(self):
-        # Aquí conectas el inventario
-        print("Ir a Inventario")
+        for text, action in actions:
+            btn = QPushButton(text)
+            btn.setFixedSize(220, 80)
+            btn.clicked.connect(action)
+            submenu_layout.addWidget(btn)
+
+        layout.addWidget(submenu_widget)
+        layout.addStretch()
+
+        toggle_btn.clicked.connect(lambda: self.toggle_visibility(submenu_widget))
+
+        return layout
+
+    def abrir_inventario(self):
+        self.inventario_ventana = InventarioVentana(regresar_callback=self.mostrar_home)
+        self.inventario_ventana.show()
+        self.hide()
+
+    def abrir_promociones(self):  # ← NUEVO MÉTODO PARA ABRIR PROMOCIONES
+        self.promociones_ventana = VentanaPromociones()
+        self.promociones_ventana.btn_regresar.clicked.connect(self.mostrar_home)
+        self.promociones_ventana.show()
+        self.hide()
+
+    def mostrar_home(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self.setWindowState(Qt.WindowActive)
+        self.showFullScreen()
+
+    def volver_de_inventario(self):
+        self.showNormal()         # Asegura que se restaure si está minimizada
+        self.showFullScreen()     # Luego, fuerza pantalla completa
+        self.raise_()             # La trae al frente
+        self.activateWindow()     # Asegura el foco
+
+    def toggle_visibility(self, widget):
+        widget.setVisible(not widget.isVisible())
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -145,8 +162,40 @@ class HomeWindow(QWidget):
         painter.setBrush(QBrush(gradient))
         painter.drawRect(self.rect())
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = HomeWindow()
-    ventana.show()
-    sys.exit(app.exec_())
+    def abrir_agendar_cita(self):
+        self.cita_ventana = AgendarCitaWindow(regresar_callback=self.mostrar_home)
+        self.cita_ventana.show()
+        self.hide()
+
+    def abrir_servicios(self):
+        self.servicios_ventana = VentanaServicios()
+        self.servicios_ventana.show()
+        self.hide()
+
+    def abrir_disponibilidad(self):
+        self.disponibilidad_ventana = DisponibilidadCitas()
+        self.disponibilidad_ventana.show()
+        self.hide()
+
+
+    def volver_a_login(self):
+        from views.login import LoginWindow  # ← Importación local
+        self.login_window = LoginWindow()
+        self.login_window.show()
+        self.hide()
+
+    def abrir_disponibilidad(self):
+        self.disponibilidad_ventana = DisponibilidadCitas(regresar_callback=self.mostrar_home)
+        self.disponibilidad_ventana.show()
+        self.hide()
+
+
+    def abrir_generar_pago(self):
+        self.generar_pago_ventana = GenerarPago(regresar_callback=self.mostrar_home)
+        self.generar_pago_ventana.show()
+        self.hide()
+
+    def abrir_registro_pago(self):
+        self.registro_pago_ventana = RegistroPago(regresar_callback=self.mostrar_home)
+        self.registro_pago_ventana.show()
+        self.hide()

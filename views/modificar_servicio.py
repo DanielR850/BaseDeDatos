@@ -1,0 +1,171 @@
+import sys
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QComboBox
+)
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
+from models.servicio_model import actualizar_servicio, obtener_variantes_servicio
+from PyQt5.QtWidgets import QMessageBox
+
+
+class ModificarServicio(QWidget):
+    def __init__(self, servicio, regresar_callback=None):
+        super().__init__()
+        self.servicio = servicio
+        self.regresar_callback = regresar_callback        
+        self.setWindowTitle("Modificar Servicio")
+        self.servicio = servicio
+        self.showFullScreen()
+
+        
+
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #f8c8dc,
+                    stop: 1 #fefefe
+                );
+                font-family: 'Poppins';
+            }
+            QLabel {
+                background-color: transparent;
+                font-size: 16pt;
+                color: #000000;
+                font-family: 'Poppins';
+            }
+            QLineEdit, QComboBox {
+                background-color: #e5d3c5;
+                border: 2px solid #000000;
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14pt;
+                min-width: 250px;
+                min-height: 41px;
+            }
+            QPushButton#regresar, QPushButton#salir {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton#regresar:hover, QPushButton#salir:hover {
+                color: gray;
+            }
+            QPushButton#guardar {
+                background-color: #231f20;
+                color: #fcb3b3;
+                font-family: 'Poppins';
+                padding: 15px;
+                border-radius: 20px;
+                font-size: 18pt;
+                min-width: 300px;
+                min-height: 80px;
+            }
+            QPushButton#guardar:hover {
+                background-color: #333333;
+            }
+        """)
+
+        self.initUI()
+
+    def initUI(self):
+        nombre = self.servicio["Nombre_Servicio"]
+        tipo = self.servicio["Nombre_Variante"]
+        costo = str(self.servicio["Precio"])
+
+        layout_principal = QVBoxLayout()
+        layout_principal.setContentsMargins(100, 30, 100, 30)
+
+        # --- Botones superiores ---
+        botones_superiores = QHBoxLayout()
+        self.btn_regresar = QPushButton("Regresar")
+        self.btn_regresar.setObjectName("regresar")
+        self.btn_regresar.clicked.connect(self.close)
+        botones_superiores.addWidget(self.btn_regresar)
+        botones_superiores.addStretch()
+        layout_principal.addLayout(botones_superiores)
+
+        # --- Logo ---
+        logo = QLabel()
+        pixmap = QPixmap("resources/logo_sinfondo.png").scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        layout_principal.addWidget(logo)
+
+        # --- Título ---
+        titulo = QLabel("Modificar Servicio")
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 30px;")
+        layout_principal.addWidget(titulo)
+
+        # --- Campos en una fila ---
+        fila_campos = QHBoxLayout()
+        fila_campos.setSpacing(50)
+
+        self.nombre_servicio = QLineEdit()
+        self.nombre_servicio.setText(nombre)
+
+        self.tipo_servicio = QComboBox()
+        self.variantes = obtener_variantes_servicio()
+        for variante in obtener_variantes_servicio():
+            self.tipo_servicio.addItem(variante["Nombre_Variante"], variante["ID_Variante"])
+            if variante["Nombre_Variante"] == tipo:
+                self.tipo_servicio.setCurrentText(tipo)
+
+        self.precio = QLineEdit()
+        self.precio.setText(costo)
+
+        fila_campos.addLayout(self.create_field_group("Nombre del Servicio", self.nombre_servicio))
+        fila_campos.addLayout(self.create_field_group("Servicio", self.tipo_servicio))
+        fila_campos.addLayout(self.create_field_group("Costo", self.precio))
+
+        layout_principal.addLayout(fila_campos)
+
+        # --- Botón guardar ---
+        self.btn_guardar = QPushButton("Guardar Cambios")
+        self.btn_guardar.setObjectName("guardar")
+        self.btn_guardar.clicked.connect(self.guardar_cambios)
+        layout_principal.addSpacing(40)
+        layout_principal.addWidget(self.btn_guardar, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout_principal)
+    def create_field_group(self, label_text, input_widget):
+        group = QVBoxLayout()
+        label = QLabel(label_text)
+        label.setAlignment(Qt.AlignCenter)
+        group.addWidget(label)
+        group.addWidget(input_widget)
+        return group
+
+
+    def guardar_cambios(self):
+        nuevo_nombre = self.nombre_servicio.text().strip()
+        nuevo_precio = self.precio.text().strip()
+        nuevo_id_variante = self.tipo_servicio.currentData()  # debe estar ligado al ID de la variante
+
+        if not nuevo_nombre or not nuevo_precio:
+            QMessageBox.warning(self, "Campos Vacíos", "Por favor, completa todos los campos.")
+            return
+
+        try:
+            nuevo_precio = float(nuevo_precio)
+        except ValueError:
+            QMessageBox.critical(self, "Error de Formato", "El precio debe ser un número.")
+            return
+
+        id_servicio = self.servicio["ID"]  # Asegúrate de tener esto en el dict de servicio
+
+        exito = actualizar_servicio(id_servicio, nuevo_nombre, nuevo_precio, nuevo_id_variante)
+        if exito:
+            QMessageBox.information(self, "Éxito", "Servicio actualizado correctamente.")
+            if self.regresar_callback:
+                self.regresar_callback()
+            self.close()
+        else:
+            QMessageBox.critical(self, "Error", "No se pudo actualizar el servicio.")
+

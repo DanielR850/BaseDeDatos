@@ -1,171 +1,138 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QPushButton,
-    QLabel, QVBoxLayout, QHBoxLayout, QTableWidget,
-    QTableWidgetItem, QHeaderView, QLineEdit, QSizePolicy
+    QApplication, QMainWindow, QWidget, QPushButton, QLabel,
+    QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QHeaderView, QLineEdit
 )
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize
+from models.pago import obtener_todos_los_pagos
 
 class RegistroPago(QMainWindow):
-    def __init__(self):
+    def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Registro de Pagos")
         self.showFullScreen()
+        self.regresar_callback = regresar_callback
+        self.initUI()
 
-        # Widget principal
+    def initUI(self):
         widget_principal = QWidget()
-        widget_principal.setStyleSheet("""
-            background: qlineargradient(
-                x1: 0, y1: 0,
-                x2: 0, y2: 1,
-                stop: 0 #EBAAAA,
-                stop: 1 #EADAD3
-            );
-            font-family: 'Poppins';
-        """)
         self.setCentralWidget(widget_principal)
+
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #EBAAAA,
+                    stop: 1 #EADAD3
+                );
+                font-family: 'Poppins';
+            }
+            QPushButton {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                color: gray;
+            }
+            QLineEdit {
+                background: white;
+                border-radius: 15px;
+                padding: 8px 35px 8px 15px;
+                font: 14px 'Roboto';
+                min-width: 250px;
+            }
+            QTableWidget {
+                background: #ffefe3;
+                border-radius: 15px;
+                padding: 10px;
+                font: 16px 'Roboto';
+                color: #4E342E;
+            }
+            QHeaderView::section {
+                background: #D7CCC8;
+                font: bold 18px;
+                padding: 12px;
+                border: none;
+            }
+            QTableWidget::item {
+                border-bottom: 2px solid #D7CCC8;
+                padding: 15px;
+            }
+        """
+        )
 
         layout_principal = QVBoxLayout(widget_principal)
         layout_principal.setContentsMargins(30, 30, 30, 30)
         layout_principal.setSpacing(20)
 
-        # --- Barra superior: Regresar y Salir ---
-        barra_superior = QHBoxLayout()
+        # Barra superior
+        layout_superior = QHBoxLayout()
+        boton_regresar = QPushButton()
+        boton_regresar.setIcon(QIcon('resources/flecha_regresar.png'))
+        boton_regresar.setIconSize(QSize(40, 40))
+        boton_regresar.setStyleSheet("border: none; background: transparent;")
+        boton_regresar.clicked.connect(self.volver_a_home)
 
-        self.btn_regresar = QPushButton("Regresar")
-        self.btn_regresar.setObjectName("regresar")
-        self.btn_salir = QPushButton("Salir")
-        self.btn_salir.setObjectName("salir")
-        self.btn_salir.clicked.connect(self.close)
+        self.busqueda = QLineEdit()
+        self.busqueda.setPlaceholderText("Buscar por cliente...")
+        self.busqueda.textChanged.connect(self.filtrar_pagos)
 
-        self.btn_regresar.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #101111;
-                font-family: 'Open Sans';
-                padding: 10px;
-                font-size: 14pt;
-                font-weight: bold;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                color: gray;
-            }
-        """)
-        self.btn_salir.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #101111;
-                font-family: 'Open Sans';
-                padding: 10px;
-                font-size: 14pt;
-                font-weight: bold;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                color: gray;
-            }
-        """)
+        layout_superior.addWidget(boton_regresar)
+        layout_superior.addStretch()
+        layout_superior.addWidget(self.busqueda)
+        layout_principal.addLayout(layout_superior)
 
-        barra_superior.addWidget(self.btn_regresar)
-        barra_superior.addStretch()
-        barra_superior.addWidget(self.btn_salir)
-        layout_principal.addLayout(barra_superior)
-
-        # --- Título ---
+        # Título
         titulo = QLabel("Registro de Pagos")
         titulo.setAlignment(Qt.AlignCenter)
-        titulo.setStyleSheet("""
-            font: bold 38px 'Roboto';
-            color: black;
-            padding: 15px;
-            background: #EBAAAA;
-        """)
+        titulo.setStyleSheet("font: bold 38px 'Roboto'; color: black; padding: 15px;")
         layout_principal.addWidget(titulo)
 
-        # --- Barra de búsqueda y eliminar ---
-        barra_acciones = QHBoxLayout()
-
-        self.boton_buscar = QPushButton("Buscar Transacción")
-        self.boton_eliminar = QPushButton("Eliminar Transacción")
-        self.input_buscar = QLineEdit()
-        self.input_eliminar = QLineEdit()
-
-        self.input_buscar.setPlaceholderText("Ingrese el ID a buscar")
-        self.input_eliminar.setPlaceholderText("Ingrese el ID a eliminar")
-        self.input_buscar.setFixedWidth(250)
-        self.input_eliminar.setFixedWidth(250)
-
-        self.boton_buscar.setStyleSheet("""
-            QPushButton {
-                background-color: #D9FFCC;
-                color: black;
-                border-radius: 20px;
-                padding: 12px 20px;
-                font-size: 16px;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: lightblue;
-            }
-        """)
-        self.boton_eliminar.setStyleSheet("""
-            QPushButton {
-                background-color: #CF6978;
-                color: black;
-                border-radius: 20px;
-                padding: 12px 20px;
-                font-size: 16px;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: lightblue;
-            }
-        """)
-
-        barra_acciones.addWidget(self.boton_buscar)
-        barra_acciones.addWidget(self.input_buscar)
-        barra_acciones.addWidget(self.boton_eliminar)
-        barra_acciones.addWidget(self.input_eliminar)
-        layout_principal.addLayout(barra_acciones)
-
-        # --- Tabla ---
-        self.tabla_pagos = QTableWidget(13, 4)
-        self.tabla_pagos.setHorizontalHeaderLabels(["Cliente", "Monto", "Método", "Fecha"])
-        self.tabla_pagos.setStyleSheet("""
-            QTableWidget {
-                background-color: #F5F5DC;
-                font-size: 15px;
-                font: bold;
-                font-family: 'sans-serif';
-            }
-            QHeaderView::section {
-                background-color: #CF6978;
-                color: black;
-                font-weight: bold;
-                font-size: 27px;
-            }
-            QTableCornerButton::section {
-                background-color: #CF6978;
-                border: 1px solid #999;
-            }
-        """)
+        # Tabla
+        self.tabla_pagos = QTableWidget(0, 3)
+        self.tabla_pagos.setHorizontalHeaderLabels(["Cliente", "Monto", "Método"])
         self.tabla_pagos.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla_pagos.verticalHeader().setVisible(False)
         self.tabla_pagos.setShowGrid(True)
-
         layout_principal.addWidget(self.tabla_pagos)
 
-        # --- Logo en esquina inferior ---
+        # Logo
         lbl_logo = QLabel()
-        pixmap = QPixmap('C:/Users/Lutec/OneDrive/Documentos/Diego Luna De Labra/6to semestre/Bases de datos/BaseDeDatos/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio)
+        pixmap = QPixmap('resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio)
         lbl_logo.setPixmap(pixmap)
         lbl_logo.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-        lbl_logo.setStyleSheet("padding: 10px; background: transparent;")
-        layout_principal.addWidget(lbl_logo, alignment=Qt.AlignRight)
+        lbl_logo.setStyleSheet("padding: 0 10px 10px 0; background: transparent;")
+        layout_principal.addWidget(lbl_logo, alignment=Qt.AlignRight | Qt.AlignBottom)
+
+        self.cargar_datos()
+
+    def cargar_datos(self):
+        pagos = obtener_todos_los_pagos()
+        self.tabla_pagos.setRowCount(len(pagos))
+        for row_index, pago in enumerate(pagos):
+            self.tabla_pagos.setItem(row_index, 0, QTableWidgetItem(pago["cliente"]))
+            self.tabla_pagos.setItem(row_index, 1, QTableWidgetItem(f"${pago['monto']:.2f}"))
+            self.tabla_pagos.setItem(row_index, 2, QTableWidgetItem(pago["metodo"]))
+
+    def filtrar_pagos(self):
+        texto = self.busqueda.text().lower()
+        for fila in range(self.tabla_pagos.rowCount()):
+            item_cliente = self.tabla_pagos.item(fila, 0)
+            if item_cliente:
+                visible = texto in item_cliente.text().lower()
+                self.tabla_pagos.setRowHidden(fila, not visible)
+
+    def volver_a_home(self):
+        self.close()
+        if self.regresar_callback:
+            self.regresar_callback()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

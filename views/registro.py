@@ -1,50 +1,69 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QHBoxLayout, QComboBox, QDateEdit
+    QVBoxLayout, QHBoxLayout, QComboBox, QMessageBox
 )
-from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtGui import QPixmap, QPainter, QPen
+from PyQt5.QtCore import Qt
+from models.usuario import insertar_usuario, obtener_id_rol
+
+class IconoOjo(QPushButton):
+    def __init__(self, input_field):
+        super().__init__()
+        self.setCheckable(True)
+        self.input_field = input_field
+        self.setFixedSize(40, 40)
+        self.setStyleSheet("background: transparent; border: none;")
+        self.clicked.connect(self.toggle_visibility)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        pen = QPen(Qt.black if not self.isChecked() else Qt.gray)
+        pen.setWidth(2)
+        painter.setPen(pen)
+        center = self.rect().center()
+        painter.drawEllipse(center, 10, 5)
+        painter.setBrush(Qt.black if not self.isChecked() else Qt.lightGray)
+        painter.drawEllipse(center, 3, 3)
+        if self.isChecked():
+            painter.drawLine(5, 5, 35, 35)
+
+    def toggle_visibility(self):
+        mode = QLineEdit.Normal if self.isChecked() else QLineEdit.Password
+        self.input_field.setEchoMode(mode)
 
 class VentanaRegistro(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Registro de Usuario")
         self.showFullScreen()
+        self.initUI()
 
+    def initUI(self):
         self.setStyleSheet("""
             QWidget {
-                background: qlineargradient(
-                    x1: 0, y1: 0,
-                    x2: 0, y2: 1,
-                    stop: 0 #f8c8dc,
-                    stop: 1 #fefefe
-                );
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #f8c8dc, stop: 1 #fefefe);
                 font-family: 'Poppins';
             }
             QLabel {
-                background-color: transparent;
                 font-size: 16pt;
-                color: #000000;
-                font-family: 'Poppins';
+                color: #000;
+                background-color: transparent;
             }
-            QLineEdit, QComboBox, QDateEdit {
-                background-color: #e5d3c5;
-                border: 2px solid #000000;
+            QLineEdit, QComboBox {
+                background: #e5d3c5;
+                border: 2px solid #000;
                 border-radius: 10px;
                 padding: 10px;
                 font-size: 14pt;
-                min-width: 250px;
-                min-height: 41px;
+                min-height: 40px;
             }
             QPushButton#regresar, QPushButton#salir {
-                background-color: transparent;
-                color: #101111;
-                font-family: 'Open Sans';
-                padding: 10px;
-                font-size: 14pt;
+                background: transparent;
                 font-weight: bold;
-                min-width: 100px;
+                font-size: 14pt;
+                color: #101111;
             }
             QPushButton#regresar:hover, QPushButton#salir:hover {
                 color: gray;
@@ -52,10 +71,9 @@ class VentanaRegistro(QWidget):
             QPushButton#registrar {
                 background-color: #231f20;
                 color: #fcb3b3;
-                font-family: 'Poppins';
+                font-size: 18pt;
                 padding: 15px;
                 border-radius: 20px;
-                font-size: 18pt;
                 min-width: 300px;
                 min-height: 80px;
             }
@@ -64,109 +82,145 @@ class VentanaRegistro(QWidget):
             }
         """)
 
-        self.initUI()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(100, 30, 100, 30)
+        layout.setSpacing(20)
 
-    def initUI(self):
-        layout_principal = QVBoxLayout()
-        layout_principal.setContentsMargins(100, 20, 100, 20)
-
-        # Botones superiores
-        botones_superiores = QHBoxLayout()
+        # Top buttons
+        top_row = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
+        self.btn_regresar.clicked.connect(self.regresar)  # <-- AÑADIDO AQUÍ
         self.btn_salir = QPushButton("Salir")
         self.btn_salir.setObjectName("salir")
         self.btn_salir.clicked.connect(self.close)
-
-        botones_superiores.addWidget(self.btn_regresar)
-        botones_superiores.addStretch()
-        botones_superiores.addWidget(self.btn_salir)
-        layout_principal.addLayout(botones_superiores)
+        top_row.addWidget(self.btn_regresar)
+        top_row.addStretch()
+        top_row.addWidget(self.btn_salir)
+        layout.addLayout(top_row)
 
         # Logo
         logo = QLabel()
-        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
-        logo.setPixmap(pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        pixmap = QPixmap("resources/logo_sinfondo.png").scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
-        layout_principal.addWidget(logo)
+        layout.addWidget(logo)
 
         # Título
         titulo = QLabel("Registro de Usuario")
         titulo.setAlignment(Qt.AlignCenter)
-        titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 30px;")
-        layout_principal.addWidget(titulo)
+        titulo.setStyleSheet("font-size: 28pt; font-weight: bold;")
+        layout.addWidget(titulo)
 
         # Formulario
-        campos_centrados = QVBoxLayout()
-        campos_centrados.setAlignment(Qt.AlignCenter)
+        form_layout = QVBoxLayout()
 
-        # Primera fila: 3 campos
         fila1 = QHBoxLayout()
-        fila1.setSpacing(50)
         self.nombre = QLineEdit()
         self.apellido_p = QLineEdit()
         self.apellido_m = QLineEdit()
+        fila1.addLayout(self.build_field("Nombre", self.nombre))
+        fila1.addLayout(self.build_field("Apellido Paterno", self.apellido_p))
+        fila1.addLayout(self.build_field("Apellido Materno", self.apellido_m))
 
-        vbox_nombre = self.create_field_group("Nombre", self.nombre)
-        vbox_apellido_p = self.create_field_group("Apellido Paterno", self.apellido_p)
-        vbox_apellido_m = self.create_field_group("Apellido Materno", self.apellido_m)
-
-        fila1.addLayout(vbox_nombre)
-        fila1.addLayout(vbox_apellido_p)
-        fila1.addLayout(vbox_apellido_m)
-
-        # Segunda fila: 3 campos
         fila2 = QHBoxLayout()
-        fila2.setSpacing(50)
         self.tipo_usuario = QComboBox()
         self.tipo_usuario.addItems(["Administrador", "Empleado"])
-        self.fecha_nac = QDateEdit()
-        self.fecha_nac.setCalendarPopup(True)
-        self.fecha_nac.setDate(QDate.currentDate())
+        fila2.addLayout(self.build_field("Tipo de Usuario", self.tipo_usuario))
+
+        fila3 = QHBoxLayout()
         self.contrasena = QLineEdit()
-        self.contrasena.setPlaceholderText("Contraseña de Usuario")
         self.contrasena.setEchoMode(QLineEdit.Password)
+        self.confirmar_contrasena = QLineEdit()
+        self.confirmar_contrasena.setEchoMode(QLineEdit.Password)
 
-        vbox_tipo = self.create_field_group("Tipo de Usuario", self.tipo_usuario)
-        vbox_fecha = self.create_field_group("Contraseña", self.contrasena)
-        vbox_contrasena = self.create_field_group("Confirmar Contraseña", self.contrasena)
+        pass1 = self.build_field("Contraseña", self.contrasena, with_eye=True)
+        pass2 = self.build_field("Confirmar Contraseña", self.confirmar_contrasena, with_eye=True)
 
-        fila2.addLayout(vbox_tipo)
-        fila2.addLayout(vbox_fecha)
-        fila2.addLayout(vbox_contrasena)
+        fila3.addLayout(pass1)
+        fila3.addLayout(pass2)
 
-        campos_centrados.addLayout(fila1)
-        campos_centrados.addSpacing(40)
-        campos_centrados.addLayout(fila2)
-
-        layout_principal.addLayout(campos_centrados)
+        form_layout.addLayout(fila1)
+        form_layout.addSpacing(15)
+        form_layout.addLayout(fila2)
+        form_layout.addSpacing(15)
+        form_layout.addLayout(fila3)
+        layout.addLayout(form_layout)
 
         # Botón registrar
         self.btn_registrar = QPushButton("Registrar")
         self.btn_registrar.setObjectName("registrar")
         self.btn_registrar.clicked.connect(self.registrar_usuario)
+        layout.addSpacing(20)
+        layout.addWidget(self.btn_registrar, alignment=Qt.AlignCenter)
 
-        layout_principal.addSpacing(30)
-        layout_principal.addWidget(self.btn_registrar, alignment=Qt.AlignCenter)
+        self.setLayout(layout)
 
-        self.setLayout(layout_principal)
-
-    def create_field_group(self, label_text, input_widget):
-        group = QVBoxLayout()
+    def build_field(self, label_text, widget, with_eye=False):
+        layout = QVBoxLayout()
         label = QLabel(label_text)
-        label.setAlignment(Qt.AlignCenter)
-        group.addWidget(label)
-        group.addWidget(input_widget)
-        return group
+        label.setAlignment(Qt.AlignLeft)
+
+        if with_eye:
+            eye_button = IconoOjo(widget)
+            row = QHBoxLayout()
+            row.addWidget(widget)
+            row.addWidget(eye_button)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(5)
+            field_container = QWidget()
+            field_container.setLayout(row)
+            field_container.setStyleSheet("background: transparent;")  # 👈 Aquí hacemos el contenedor transparente
+            layout.addWidget(label)
+            layout.addWidget(field_container)
+        else:
+            layout.addWidget(label)
+            layout.addWidget(widget)
+        return layout
+
 
     def registrar_usuario(self):
-        print("Usuario registrado:")
-        print("Nombre:", self.nombre.text())
-        print("Apellido Paterno:", self.apellido_p.text())
-        print("Apellido Materno:", self.apellido_m.text())
-        print("Tipo de usuario:", self.tipo_usuario.currentText())
-        print("Contraseña:", self.contrasena.text())
-        print("Confirmar contraseña:", self.contrasena.text())
+        nombre = self.nombre.text().strip()
+        ap_paterno = self.apellido_p.text().strip()
+        ap_materno = self.apellido_m.text().strip()
+        tipo = self.tipo_usuario.currentText().strip()  # "Administrador" o "Empleado"
+        password = self.contrasena.text()
+        confirmar = self.confirmar_contrasena.text()
+
+        if not all([nombre, ap_paterno, ap_materno, password, confirmar]):
+            QMessageBox.warning(self, "Campos incompletos", "Por favor, llena todos los campos.")
+            return
+
+        if password != confirmar:
+            QMessageBox.critical(self, "Contraseñas no coinciden", "Las contraseñas ingresadas no coinciden.")
+            return
+
+        # 🔄 Mapear tipo a valor exacto en tabla 'rol'
+        rol_mapeado = "Admin" if tipo == "Administrador" else "Empleado"
+
+        # 🧠 Buscar ID_Usuario desde la tabla rol
+        from models.usuario import obtener_id_rol  # Asegúrate de tener esta función definida
+        id_usuario = obtener_id_rol(rol_mapeado)
+
+        if id_usuario is None:
+            QMessageBox.critical(self, "Error", "No se pudo determinar el rol del usuario.")
+            return
+
+        from models.usuario import insertar_usuario  # Asegúrate que reciba ID_Usuario
+        exito = insertar_usuario(nombre, ap_paterno, ap_materno, password, id_usuario)
+
+        if exito:
+            QMessageBox.information(self, "Éxito", "Usuario registrado correctamente.")
+            self.regresar()
+        else:
+            QMessageBox.critical(self, "Error", "Ocurrió un error al registrar el usuario.")
+
+
+    def regresar(self):
+        from views.login import LoginWindow
+        self.login = LoginWindow()
+        self.login.show()
+        self.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

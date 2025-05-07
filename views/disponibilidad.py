@@ -5,12 +5,16 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QBrush, QColor
 from PyQt5.QtCore import Qt
+from datetime import date
+from models.cita import eliminar_cita_por_id  # Asegúrate de importar esto
+from PyQt5.QtWidgets import QMessageBox
 
 class DisponibilidadCitas(QMainWindow):
-    def __init__(self):
+    def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Disponibilidad de Citas")
         self.showFullScreen()
+        self.regresar_callback = regresar_callback
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(
@@ -50,10 +54,10 @@ class DisponibilidadCitas(QMainWindow):
     def initUI(self):
         layout_principal = QVBoxLayout()
 
-        # Botón de regresar
+        # Botones superiores
         btn_regresar = QPushButton("⤺ Regresar")
         btn_regresar.setObjectName("regresar")
-        btn_regresar.clicked.connect(self.close)
+        btn_regresar.clicked.connect(self.regresar)
 
         fila_superior = QHBoxLayout()
         fila_superior.addWidget(btn_regresar, alignment=Qt.AlignLeft)
@@ -67,56 +71,95 @@ class DisponibilidadCitas(QMainWindow):
 
         layout_principal.addLayout(fila_superior)
 
-        # Contenedor de tabla con márgenes reducidos
+        # Tabla
         tabla_layout = QVBoxLayout()
-        tabla_layout.setContentsMargins(200, 20, 200, 100)  # Espacios laterales y abajo
+        tabla_layout.setContentsMargins(200, 20, 200, 20)
 
         self.table_widget = QTableWidget()
-        self.table_widget.setRowCount(6)  # Solo 6 filas
-        self.table_widget.setColumnCount(4)  # Fecha + Hora + Cliente + Trabajo
-
+        self.table_widget.setColumnCount(4)
         self.table_widget.setHorizontalHeaderLabels(["Fecha", "Hora", "Cliente", "Trabajo Requerido"])
         self.table_widget.setFont(QFont("Poppins", 12))
-
-        # Ajustar columnas
-        header = self.table_widget.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
-        self.table_widget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        citas = [
-            ("Jueves 27 Marzo", "10:00 AM", "Ana Torres", "Maquillaje"),
-            ("Jueves 27 Marzo", "11:30 AM", "Luis Gómez", "Peinado"),
-            ("Jueves 27 Marzo", "12:00 PM", "Claudia Reyes", "Uñas"),
-            ("Viernes 28 Marzo", "09:00 AM", "Mariana Díaz", "Peinado"),
-            ("Viernes 28 Marzo", "10:30 AM", "Carlos Sánchez", "Maquillaje"),
-            ("Viernes 28 Marzo", "12:00 PM", "Patricia Velázquez", "Uñas"),
-        ]
-
-        for fila, (fecha, hora, cliente, trabajo) in enumerate(citas):
-            self.table_widget.setItem(fila, 0, QTableWidgetItem(fecha))
-            self.table_widget.setItem(fila, 1, QTableWidgetItem(hora))
-            self.table_widget.setItem(fila, 2, QTableWidgetItem(cliente))
-            self.table_widget.setItem(fila, 3, QTableWidgetItem(trabajo))
-
-        # Personalizar colores de celdas
-        for fila in range(self.table_widget.rowCount()):
-            for columna in range(self.table_widget.columnCount()):
-                item = self.table_widget.item(fila, columna)
-                if item is not None:
-                    if columna == 0:
-                        item.setBackground(QBrush(QColor("#e5d3c5")))
-                    else:
-                        item.setBackground(QBrush(QColor("#ffefe3")))
+        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_widget.verticalHeader().setVisible(False)
+        self.table_widget.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table_widget.setSelectionMode(QTableWidget.SingleSelection)
 
         tabla_layout.addWidget(self.table_widget)
+
+        # Botón eliminar
+        self.btn_eliminar = QPushButton("Eliminar Cita")
+        self.btn_eliminar.setStyleSheet("""
+            QPushButton {
+                background-color: #E57979;
+                border-radius: 25px;
+                padding: 12px 25px;
+                font-size: 16pt;
+                font-weight: bold;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #C62828;
+            }
+        """)
+        self.btn_eliminar.clicked.connect(self.eliminar_cita_seleccionada)  # <- corregido
+        tabla_layout.addWidget(self.btn_eliminar, alignment=Qt.AlignCenter)
+
         layout_principal.addLayout(tabla_layout)
 
         container = QWidget()
         container.setLayout(layout_principal)
         self.setCentralWidget(container)
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = DisponibilidadCitas()
-    ventana.show()
-    sys.exit(app.exec_())
+        self.cargar_citas()
+
+
+
+    def regresar(self):
+        self.close()
+        if self.regresar_callback:
+            self.regresar_callback()
+
+
+
+    def cargar_citas(self):
+        from models.cita import obtener_citas_hoy
+
+        citas_hoy = obtener_citas_hoy()
+        self.table_widget.setRowCount(len(citas_hoy))
+
+        for fila, cita in enumerate(citas_hoy):
+            # Convertir fecha y hora a cadena si son objetos datetime
+            fecha_str = str(cita["fecha"])
+            hora_str = str(cita["hora"])
+
+            self.table_widget.setItem(fila, 0, QTableWidgetItem(fecha_str))
+            self.table_widget.setItem(fila, 1, QTableWidgetItem(hora_str))
+            self.table_widget.setItem(fila, 2, QTableWidgetItem(cita["cliente"]))
+            self.table_widget.setItem(fila, 3, QTableWidgetItem(cita["trabajo"]))
+
+            # Guardar ID de cita como dato oculto en todas las columnas
+            for col in range(4):
+                item = self.table_widget.item(fila, col)
+                if item:
+                    item.setData(Qt.UserRole, cita["id"])
+                    item.setBackground(QBrush(QColor("#e5d3c5" if col == 0 else "#ffefe3")))
+
+
+
+    def eliminar_cita_seleccionada(self):
+        fila = self.table_widget.currentRow()
+        if fila >= 0:
+            item = self.table_widget.item(fila, 0)
+            id_cita = item.data(Qt.UserRole)
+            if id_cita:
+                confirmacion = QMessageBox.question(
+                    self, "Confirmar eliminación",
+                    "¿Estás seguro de que deseas eliminar esta cita?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if confirmacion == QMessageBox.Yes:
+                    if eliminar_cita_por_id(id_cita):
+                        QMessageBox.information(self, "Eliminado", "Cita eliminada correctamente.")
+                        self.cargar_citas()
+                    else:
+                        QMessageBox.critical(self, "Error", "No se pudo eliminar la cita.")

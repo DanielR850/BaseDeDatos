@@ -1,27 +1,52 @@
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QComboBox, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect, QMessageBox 
+    QComboBox, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect,
+    QMessageBox, QSpacerItem, QSizePolicy
 )
-from PyQt5.QtGui import QIcon, QPixmap
-import subprocess
-import sys
+from PyQt5.QtGui import QPixmap, QPainter, QPen
+import os
+from views.home import HomeWindow
+
+from models.usuario import verificar_credenciales
+from views.registro import VentanaRegistro
+
+class IconoOjo(QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setFixedSize(40, 40)
+        self.setStyleSheet("background: transparent; border: none;")
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        pen = QPen(Qt.black if not self.isChecked() else Qt.gray)
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        center = self.rect().center()
+        radius = 10
+
+        # Ojo
+        painter.drawEllipse(center, radius, radius // 2)
+        painter.setBrush(Qt.black if not self.isChecked() else Qt.lightGray)
+        painter.drawEllipse(center, 3, 3)
+
+        if self.isChecked():
+            painter.drawLine(5, 5, 35, 35)
+
 
 class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Iniciar Sesión")
-        self.showFullScreen()
+        self.showFullScreen()  # ← pantalla completa real
+
         self.setStyleSheet("""
         QWidget {
-            background: qlineargradient(
-                x1: 0, y1: 0,
-                x2: 0, y2: 1,
-                stop: 0 #e1938c,
-                stop: 1 #d6c6c2
-            );
+            background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e1938c, stop: 1 #d6c6c2);
         }
-
         QLineEdit, QComboBox {
             background-color: #ffefe3;
             border: 2px solid black;
@@ -29,10 +54,7 @@ class LoginWindow(QWidget):
             padding: 12px;
             font-size: 22px;
             font-weight: bold;
-            font-family: 'Roboto', 'Helvetica', monospace;
-
         }
-
         QPushButton {
             background-color: #e57979;
             border: 2px solid black;
@@ -40,146 +62,132 @@ class LoginWindow(QWidget):
             padding: 15px 30px;
             font-weight: bold;
             font-size: 22px;
-            font-family: 'Roboto', 'Helvetica', monospace;
             color: black;
-            margin: 30px;
         }
-
         QPushButton:hover {
             background-color: #ffe0f0;
-            border: 1px solid black;
         }
-
-        QPushButton:pressed {
-            background-color: #f9c5da;
-            border: 1px solid #c05383;
-        }
-
         QLabel {
             background: transparent;
             font-size: 22px;
-            font-family: Arial;
             font-weight: bold;
-            font-family: 'Roboto', 'Helvetica', monospace;
-
         }
         """)
 
         self.initUI()
 
     def initUI(self):
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignCenter)
 
+        # Logo
         logo = QLabel()
-        pixmap = QPixmap("../resources/logo_sinfondo.png")
-        logo.setPixmap(pixmap.scaledToHeight(200))
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "resources", "logo_sinfondo.png")
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():
+            logo.setPixmap(pixmap.scaledToHeight(150))
         logo.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(logo)
 
-        form_container = QVBoxLayout()
-        form_container.setAlignment(Qt.AlignCenter)
-        form_container.setSpacing(30)
+        ancho_campo = 500
 
-        ancho_campo = 600
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(25)
+        form_layout.setAlignment(Qt.AlignCenter)
+
+        self.roles_dict = {"Administrador": "Admin", "Empleado": "Empleado"}
 
         # Tipo de Usuario
-        label_tipo = QLabel("Tipo de Usuario")
         self.tipo_usuario = QComboBox()
-        self.tipo_usuario.addItems(["Administrador", "Empleado"])
+        self.tipo_usuario.addItems(self.roles_dict.keys())
         self.tipo_usuario.setFixedWidth(ancho_campo)
-        form_container.addWidget(label_tipo, alignment=Qt.AlignCenter)
-        form_container.addWidget(self.tipo_usuario, alignment=Qt.AlignCenter)
+        form_layout.addWidget(QLabel("Tipo de Usuario"), alignment=Qt.AlignCenter)
+        form_layout.addWidget(self.tipo_usuario, alignment=Qt.AlignCenter)
 
-        # ID de Usuario
-        label_usuario = QLabel("ID de Usuario")
+        # Usuario
         self.usuario = QLineEdit()
+        self.usuario.setPlaceholderText("Usuario")
         self.usuario.setFixedWidth(ancho_campo)
-        self.usuario.setMaxLength(10)
-        self.usuario.setPlaceholderText("Ejemplo: admin12345")
-        form_container.addWidget(label_usuario, alignment=Qt.AlignCenter)
-        form_container.addWidget(self.usuario, alignment=Qt.AlignCenter)
+        form_layout.addWidget(QLabel("Usuario"), alignment=Qt.AlignCenter)
+        form_layout.addWidget(self.usuario, alignment=Qt.AlignCenter)
 
-        # Contraseña
-        label_contra = QLabel("Contraseña")
+        # Contraseña + botón ojo
         self.contrasena = QLineEdit()
         self.contrasena.setEchoMode(QLineEdit.Password)
+        self.contrasena.setPlaceholderText("Contraseña")
+        self.contrasena.setFixedHeight(55)
         self.contrasena.setFixedWidth(ancho_campo - 40)
-        self.contrasena.setMaxLength(8)
-        self.contrasena.setPlaceholderText("Mínimo 6 caracteres, máximo 8")
         self.contrasena.setStyleSheet("""
-            background-color: #ffefe3;
-            border: 2px solid black;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 20px;
-            font-weight: bold;
+            QLineEdit {
+                background-color: #ffefe3;
+                border: 2px solid black;
+                border-radius: 8px;
+                padding-left: 12px;
+                font-size: 22px;
+                font-weight: bold;
+                font-family: 'Roboto', 'Helvetica', monospace;
+            }
         """)
 
-        self.boton_ojo = QPushButton()
-        self.boton_ojo.setFixedSize(40, 40)
-        self.boton_ojo.setIcon(QIcon("../resources/ojo2.png"))
-        self.boton_ojo.setIconSize(QSize(40, 40))
-        self.boton_ojo.setStyleSheet("""
-                    QPushButton {
-                    border: none;
-                    background: transparent;
-                }
-                QPushButton:hover {
-                    background-color: rgba(255, 255, 255, 60);
-                    border-radius: 20px;
-                }
-            """)
-        self.boton_ojo.setCheckable(True)
+        self.boton_ojo = IconoOjo()
         self.boton_ojo.clicked.connect(self.toggle_password_visibility)
+        self.boton_ojo.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                margin-right: 8px;
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 0, 0, 30%);
+                border-radius: 20px;
+            }
+        """)
 
-        sombra = QGraphicsDropShadowEffect()
-        sombra.setBlurRadius(15)
-        sombra.setXOffset(0)
-        sombra.setYOffset(2)
-        sombra.setColor(Qt.gray)
-        self.boton_ojo.setGraphicsEffect(sombra)
+        pass_layout = QHBoxLayout()
+        pass_layout.setContentsMargins(0, 0, 0, 0)
+        pass_layout.setSpacing(0)
+        pass_layout.addWidget(self.contrasena)
+        pass_layout.addWidget(self.boton_ojo)
 
-        contrasena_layout = QHBoxLayout()
-        contrasena_layout.addWidget(self.contrasena)
-        contrasena_layout.addWidget(self.boton_ojo)
+        pass_widget = QWidget()
+        pass_widget.setLayout(pass_layout)
+        pass_widget.setStyleSheet("background: transparent;")
 
-        contrasena_widget = QWidget()
-        contrasena_widget.setLayout(contrasena_layout)
-        contrasena_widget.setStyleSheet("background: transparent;")
+        form_layout.addWidget(QLabel("Contraseña"), alignment=Qt.AlignCenter)
+        form_layout.addWidget(pass_widget, alignment=Qt.AlignCenter)
 
-        form_container.addWidget(label_contra, alignment=Qt.AlignCenter)
-        form_container.addWidget(contrasena_widget, alignment=Qt.AlignCenter)
-
-        main_layout.addLayout(form_container)
 
         # Botones
-        botones = QHBoxLayout()
+        btn_layout = QHBoxLayout()
         btn_login = QPushButton("Iniciar Sesión")
         btn_login.clicked.connect(self.abrir_home)
 
         btn_registrar = QPushButton("Registrarse")
         btn_registrar.clicked.connect(self.abrir_registro)
 
-        botones.addWidget(btn_login)
-        botones.addWidget(btn_registrar)
-        main_layout.addLayout(botones)
+        btn_layout.addWidget(btn_login)
+        btn_layout.addWidget(btn_registrar)
 
-        self.setLayout(main_layout)
+        form_layout.addLayout(btn_layout)
 
-        # Eventos para placeholder dinámico
-        self.usuario.focusInEvent = lambda event: self.handle_focus(event, self.usuario, "")
-        self.usuario.focusOutEvent = lambda event: self.handle_focus(event, self.usuario, "Ej: admin123")
+        main_layout.addLayout(form_layout)
 
-        self.contrasena.focusInEvent = lambda event: self.handle_focus(event, self.contrasena, "")
-        self.contrasena.focusOutEvent = lambda event: self.handle_focus(event, self.contrasena, "Mínimo 6 caracteres, máximo 16")
+                # Información de contacto (esquina inferior izquierda)
+        contacto_label = QLabel(
+            "Contacto para mejoras:\n"
+            "leo.dav_sg@outlook.com\n"
+            "miltonvazquez564@gmail.com\n"
+            "denilson_gzzdiaz@hotmail.com\n"
+            "d.reyna.burnes@gmail.com"
+        )
+        contacto_label.setStyleSheet("font-size: 10pt; color: #333; background: transparent;")
+        contacto_label.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
 
-    def handle_focus(self, event, widget, placeholder_text):
-        if event.type() == event.FocusIn:
-            widget.setPlaceholderText("")
-        elif event.type() == event.FocusOut:
-            if not widget.text():
-                widget.setPlaceholderText(placeholder_text)
+        contacto_layout = QHBoxLayout()
+        contacto_layout.addWidget(contacto_label, alignment=Qt.AlignLeft | Qt.AlignBottom)
+
+        main_layout.addStretch()
+        main_layout.addLayout(contacto_layout)
 
     def toggle_password_visibility(self):
         if self.boton_ojo.isChecked():
@@ -188,32 +196,35 @@ class LoginWindow(QWidget):
             self.contrasena.setEchoMode(QLineEdit.Password)
 
     def abrir_home(self):
-        usuario = self.usuario.text().strip()
-        contrasena = self.contrasena.text().strip()
+        usuario_txt = self.usuario.text().strip()
+        contrasena_txt = self.contrasena.text().strip()
+        rol_seleccionado = self.tipo_usuario.currentText()
+        rol_db = self.roles_dict.get(rol_seleccionado, "")
 
-        if not usuario or usuario == "Ej: admin01":
-            QMessageBox.warning(self, "Campo incompleto", "Por favor ingresa tu ID de Usuario.")
-            return
-        if not contrasena or contrasena == "Ej: 8caract":
-            QMessageBox.warning(self, "Campo incompleto", "Por favor ingresa tu contraseña.")
-            return
-
-        # Aquí iría la lógica con la base de datos
-        if usuario != "admin01" or contrasena != "12345678":
-            QMessageBox.critical(self, "Error de autenticación", "Usuario o contraseña incorrectos.")
+        if not usuario_txt or not contrasena_txt:
+            QMessageBox.warning(self, "Campos vacíos", "Por favor, ingresa usuario y contraseña.")
             return
 
-        self.close()
-        subprocess.Popen([sys.executable, "home.py"])
+        try:
+            print("🔍 Verificando credenciales...")
+            if verificar_credenciales(rol_db, usuario_txt, contrasena_txt):
+                print("✅ Credenciales válidas. Intentando abrir HomeWindow...")
+                self.home = HomeWindow()
+                print("✅ HomeWindow creada exitosamente")
+                self.home.show()
+                self.close()
+            else:
+                QMessageBox.warning(self, "Error de autenticación", "Usuario o contraseña incorrectos.")
+        except Exception as e:
+            print(f"❌ ERROR al crear HomeWindow: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error crítico", f"Hubo un problema al abrir el menú principal:\n{e}")
+
+
+
 
     def abrir_registro(self):
+        self.registro = VentanaRegistro()
+        self.registro.show()
         self.close()
-        subprocess.Popen([sys.executable, "registro.py"])
-
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication
-    import sys
-    app = QApplication(sys.argv)
-    ventana = LoginWindow()
-    ventana.show()
-    sys.exit(app.exec_())

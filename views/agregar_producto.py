@@ -1,17 +1,22 @@
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QHBoxLayout, QGridLayout, QMessageBox
+    QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QMessageBox
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
-import sys
 import os
+from models.producto import insertar_producto
 
 class AgregarProducto(QWidget):
-    def __init__(self):
+    def __init__(self, regresar_callback=None, salir_callback=None,actualizar_tabla_callback=None):
         super().__init__()
         self.setWindowTitle("Agregar Producto")
         self.showFullScreen()
+        self.regresar_callback = regresar_callback
+        self.salir_callback = salir_callback
+        self.actualizar_tabla_callback = actualizar_tabla_callback
+
+        
 
         self.setStyleSheet("""
             QWidget {
@@ -26,7 +31,6 @@ class AgregarProducto(QWidget):
                 background-color: transparent;
                 font-size: 16pt;
                 color: #000000;
-                font-family: 'Poppins';
                 qproperty-alignment: 'AlignCenter';
             }
             QLineEdit {
@@ -53,7 +57,6 @@ class AgregarProducto(QWidget):
             QPushButton#agregar {
                 background-color: #231f20;
                 color: #fcb3b3;
-                font-family: 'Poppins';
                 padding: 15px;
                 border-radius: 20px;
                 font-size: 18pt;
@@ -64,118 +67,99 @@ class AgregarProducto(QWidget):
                 background-color: #333333;
             }
         """)
-
         self.initUI()
 
     def initUI(self):
-        layout_principal = QVBoxLayout()
+        layout = QVBoxLayout()
 
-        # Botones superiores
-        botones_superiores = QHBoxLayout()
-
+        # --- Botones superiores ---
+        botones = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
+        self.btn_regresar.clicked.connect(self.regresar)
+
         self.btn_salir = QPushButton("Salir")
         self.btn_salir.setObjectName("salir")
-        self.btn_salir.clicked.connect(self.close)
+        self.btn_salir.clicked.connect(self.salir)
 
-        botones_superiores.addWidget(self.btn_regresar)
-        botones_superiores.addStretch()
-        botones_superiores.addWidget(self.btn_salir)
+        botones.addWidget(self.btn_regresar)
+        botones.addStretch()
+        botones.addWidget(self.btn_salir)
+        layout.addLayout(botones)
 
-        layout_principal.addLayout(botones_superiores)
-
-        # Logo arriba
+        # --- Logo ---
         logo = QLabel()
-        pixmap = QPixmap("C:/Users/makib/Documents/EntornosVirtuales/BaseDeDatosSalonDeBelleza/resources/logo_sinfondo.png")
+        pixmap = QPixmap("resources/logo_sinfondo.png")
         logo.setPixmap(pixmap.scaledToHeight(100))
         logo.setAlignment(Qt.AlignCenter)
-        layout_principal.addWidget(logo)
+        layout.addWidget(logo)
 
-        # Título
+        # --- Título ---
         titulo = QLabel("Agregar producto")
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 20px;")
-        layout_principal.addWidget(titulo)
+        layout.addWidget(titulo)
 
-        # Formulario de productos
-        campos_centrados = QVBoxLayout()
-        campos_centrados.setAlignment(Qt.AlignCenter)
-
+        # --- Campos ---
+        form_layout = QVBoxLayout()
         fila1 = QHBoxLayout()
         fila1.setSpacing(50)
+
         self.id_producto = QLineEdit()
         self.id_producto.setEnabled(False)
         self.nombre = QLineEdit()
         self.marca = QLineEdit()
 
-        vbox_id = QVBoxLayout()
-        vbox_id.addWidget(self.create_label_centered("ID del Producto"))
-        vbox_id.addWidget(self.id_producto)
-
-        vbox_nombre = QVBoxLayout()
-        vbox_nombre.addWidget(self.create_label_centered("Nombre"))
-        vbox_nombre.addWidget(self.nombre)
-
-        vbox_marca = QVBoxLayout()
-        vbox_marca.addWidget(self.create_label_centered("Marca"))
-        vbox_marca.addWidget(self.marca)
-
-        fila1.addLayout(vbox_id)
-        fila1.addLayout(vbox_nombre)
-        fila1.addLayout(vbox_marca)
+        fila1.addLayout(self.form_group("ID del Producto", self.id_producto))
+        fila1.addLayout(self.form_group("Nombre", self.nombre))
+        fila1.addLayout(self.form_group("Marca", self.marca))
 
         fila2 = QHBoxLayout()
         fila2.setSpacing(100)
+
         self.precio = QLineEdit()
         self.stock = QLineEdit()
 
-        vbox_precio = QVBoxLayout()
-        vbox_precio.addWidget(self.create_label_centered("Precio"))
-        vbox_precio.addWidget(self.precio)
+        fila2.addLayout(self.form_group("Precio", self.precio))
+        fila2.addLayout(self.form_group("Stock", self.stock))
 
-        vbox_stock = QVBoxLayout()
-        vbox_stock.addWidget(self.create_label_centered("Stock"))
-        vbox_stock.addWidget(self.stock)
+        form_layout.addLayout(fila1)
+        form_layout.addSpacing(50)
+        form_layout.addLayout(fila2)
+        layout.addLayout(form_layout)
 
-        fila2.addLayout(vbox_precio)
-        fila2.addLayout(vbox_stock)
-
-        campos_centrados.addLayout(fila1)
-        campos_centrados.addSpacing(50)
-        campos_centrados.addLayout(fila2)
-
-        layout_principal.addLayout(campos_centrados)
-
-        # Botón agregar producto
+        # --- Botón guardar ---
         self.btn_agregar = QPushButton("Agregar Producto")
         self.btn_agregar.setObjectName("agregar")
         self.btn_agregar.clicked.connect(self.guardar_producto)
-        layout_principal.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
 
-        self.setLayout(layout_principal)
+        self.setLayout(layout)
 
-    def create_label_centered(self, text):
-        label = QLabel(text)
+    def form_group(self, label_text, line_edit):
+        vbox = QVBoxLayout()
+        label = QLabel(label_text)
         label.setAlignment(Qt.AlignCenter)
-        return label
+        vbox.addWidget(label)
+        vbox.addWidget(line_edit)
+        return vbox
+
+    def regresar(self):
+        self.hide()
+        if self.regresar_callback:
+            self.regresar_callback()
+
+    def salir(self):
+        self.hide()
+        if self.salir_callback:
+            self.salir_callback()
 
     def generar_id(self):
         if not os.path.exists("productos.txt"):
             return 1
-
         with open("productos.txt", "r", encoding="utf-8") as f:
             lineas = f.readlines()
-
-        ids = []
-        for linea in lineas:
-            if linea.strip():
-                try:
-                    id_num = int(linea.split(",")[0])
-                    ids.append(id_num)
-                except ValueError:
-                    continue
-
+        ids = [int(l.split(",")[0]) for l in lineas if l.strip() and l.split(",")[0].isdigit()]
         return max(ids) + 1 if ids else 1
 
     def guardar_producto(self):
@@ -188,21 +172,24 @@ class AgregarProducto(QWidget):
             QMessageBox.warning(self, "Faltan datos", "Por favor, llena todos los campos.")
             return
 
-        nuevo_id = self.generar_id()
-
         try:
-            with open("productos.txt", "a", encoding="utf-8") as f:
-                f.write(f"{nuevo_id},{nombre},{marca},{precio},{stock}\n")
-            QMessageBox.information(self, "Guardado", f"Producto guardado con ID {nuevo_id}.")
-            self.nombre.clear()
-            self.marca.clear()
-            self.precio.clear()
-            self.stock.clear()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo guardar el producto:\n{str(e)}")
+            precio_float = float(precio.replace(",", "."))  # por si el usuario usa coma
+            stock_int = int(stock)
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = AgregarProducto()
-    ventana.show()
-    sys.exit(app.exec_())
+            if precio_float > 99999.99:
+                QMessageBox.warning(self, "Precio inválido", "El precio no puede ser mayor a 99999.99")
+                return
+
+            if insertar_producto(nombre, marca, precio_float, stock_int):
+                QMessageBox.information(self, "Guardado", "Producto guardado correctamente.")
+                self.nombre.clear()
+                self.marca.clear()
+                self.precio.clear()
+                self.stock.clear()
+            else:
+                QMessageBox.critical(self, "Error", "No se pudo guardar el producto en la base de datos.")
+
+        except ValueError:
+            QMessageBox.critical(self, "Error de formato", "Precio debe ser numérico y Stock un número entero.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error inesperado", str(e))
