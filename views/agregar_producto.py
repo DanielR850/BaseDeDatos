@@ -8,15 +8,15 @@ import os
 from models.producto import insertar_producto
 
 class AgregarProducto(QWidget):
-    def __init__(self, regresar_callback=None, salir_callback=None,actualizar_tabla_callback=None):
+    def __init__(self, regresar_callback=None, salir_callback=None, actualizar_tabla_callback=None):
         super().__init__()
         self.setWindowTitle("Agregar Producto")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
+
         self.regresar_callback = regresar_callback
         self.salir_callback = salir_callback
         self.actualizar_tabla_callback = actualizar_tabla_callback
-
-        
 
         self.setStyleSheet("""
             QWidget {
@@ -71,6 +71,8 @@ class AgregarProducto(QWidget):
 
     def initUI(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(50, 30, 50, 30)
+        layout.setSpacing(20)
 
         # --- Botones superiores ---
         botones = QHBoxLayout()
@@ -100,7 +102,7 @@ class AgregarProducto(QWidget):
         titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 20px;")
         layout.addWidget(titulo)
 
-        # --- Campos ---
+        # --- Formulario de campos ---
         form_layout = QVBoxLayout()
         fila1 = QHBoxLayout()
         fila1.setSpacing(50)
@@ -124,14 +126,15 @@ class AgregarProducto(QWidget):
         fila2.addLayout(self.form_group("Stock", self.stock))
 
         form_layout.addLayout(fila1)
-        form_layout.addSpacing(50)
+        form_layout.addSpacing(30)
         form_layout.addLayout(fila2)
         layout.addLayout(form_layout)
 
-        # --- Botón guardar ---
+        # --- Botón Agregar ---
         self.btn_agregar = QPushButton("Agregar Producto")
         self.btn_agregar.setObjectName("agregar")
         self.btn_agregar.clicked.connect(self.guardar_producto)
+        layout.addSpacing(30)
         layout.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
@@ -154,14 +157,6 @@ class AgregarProducto(QWidget):
         if self.salir_callback:
             self.salir_callback()
 
-    def generar_id(self):
-        if not os.path.exists("productos.txt"):
-            return 1
-        with open("productos.txt", "r", encoding="utf-8") as f:
-            lineas = f.readlines()
-        ids = [int(l.split(",")[0]) for l in lineas if l.strip() and l.split(",")[0].isdigit()]
-        return max(ids) + 1 if ids else 1
-
     def guardar_producto(self):
         nombre = self.nombre.text().strip()
         marca = self.marca.text().strip()
@@ -173,11 +168,11 @@ class AgregarProducto(QWidget):
             return
 
         try:
-            precio_float = float(precio.replace(",", "."))  # por si el usuario usa coma
+            precio_float = float(precio.replace(",", "."))
             stock_int = int(stock)
 
             if precio_float > 99999.99:
-                QMessageBox.warning(self, "Precio inválido", "El precio no puede ser mayor a 99999.99")
+                QMessageBox.warning(self, "Precio inválido", "El precio no puede ser mayor a $99,999.99")
                 return
 
             if insertar_producto(nombre, marca, precio_float, stock_int):
@@ -186,10 +181,12 @@ class AgregarProducto(QWidget):
                 self.marca.clear()
                 self.precio.clear()
                 self.stock.clear()
+
+                if self.actualizar_tabla_callback:
+                    self.actualizar_tabla_callback()
             else:
                 QMessageBox.critical(self, "Error", "No se pudo guardar el producto en la base de datos.")
-
         except ValueError:
-            QMessageBox.critical(self, "Error de formato", "Precio debe ser numérico y Stock un número entero.")
+            QMessageBox.critical(self, "Error de formato", "Precio debe ser decimal y Stock un número entero.")
         except Exception as e:
             QMessageBox.critical(self, "Error inesperado", str(e))

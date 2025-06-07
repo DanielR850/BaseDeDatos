@@ -1,5 +1,6 @@
 from database.conexion import get_connection
 import traceback
+from pymysql.cursors import DictCursor
 
 
 def obtener_id_cliente(nombre, primer_apellido, segundo_apellido, telefono):
@@ -38,30 +39,40 @@ def obtener_id_cliente(nombre, primer_apellido, segundo_apellido, telefono):
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals() and conn.open: conn.close()
-
-
+ 
 
 def insertar_cliente(nombre, apellido_paterno, apellido_materno, telefono):
-    from database.conexion import get_connection
-    import traceback
     try:
         conn = get_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(DictCursor)  # 👈 ESTO ES CLAVE
 
+        # Verifica si el cliente ya existe por teléfono
+        cursor.execute("SELECT ID_Cliente FROM Cliente WHERE Telefono = %s", (telefono,))
+        existente = cursor.fetchone()
+
+        if existente:
+            print(f"ℹ️ Cliente ya existe con ID: {existente['ID_Cliente']}")
+            return existente["ID_Cliente"]
+
+        # Inserta nuevo cliente
         query = """
-        INSERT INTO cliente (Nombre, PrimerApellido, SegundoApellido, Telefono)
-        VALUES (%s, %s, %s, %s)
+            INSERT INTO Cliente (Nombre, PrimerApellido, SegundoApellido, Telefono)
+            VALUES (%s, %s, %s, %s)
         """
         cursor.execute(query, (nombre, apellido_paterno, apellido_materno, telefono))
         conn.commit()
-
         id_cliente = cursor.lastrowid
         print(f"✅ Cliente insertado con ID: {id_cliente}")
         return id_cliente
-    except Exception as e:
-        print(f"❌ Error al insertar cliente: {e}")
+
+    except Exception:
+        import traceback
+        print("❌ Error al insertar cliente:")
         traceback.print_exc()
         return None
+
     finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals() and conn.open: conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals() and conn.open:
+            conn.close()

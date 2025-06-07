@@ -8,12 +8,14 @@ from PyQt5.QtCore import Qt
 from datetime import date
 from models.cita import eliminar_cita_por_id  # Asegúrate de importar esto
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QSizePolicy
 
 class DisponibilidadCitas(QMainWindow):
     def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Disponibilidad de Citas")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.regresar_callback = regresar_callback
         self.setStyleSheet("""
             QWidget {
@@ -77,9 +79,10 @@ class DisponibilidadCitas(QMainWindow):
 
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(4)
-        self.table_widget.setHorizontalHeaderLabels(["Fecha", "Hora", "Cliente", "Trabajo Requerido"])
+        self.table_widget.setHorizontalHeaderLabels(["Fecha", "Hora", "Cliente", "Servicio Requerido"])
         self.table_widget.setFont(QFont("Poppins", 12))
         self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.table_widget.verticalHeader().setVisible(False)
         self.table_widget.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_widget.setSelectionMode(QTableWidget.SingleSelection)
@@ -101,7 +104,7 @@ class DisponibilidadCitas(QMainWindow):
                 background-color: #C62828;
             }
         """)
-        self.btn_eliminar.clicked.connect(self.eliminar_cita_seleccionada)  # <- corregido
+        self.btn_eliminar.clicked.connect(self.eliminar_cita_seleccionada)
         tabla_layout.addWidget(self.btn_eliminar, alignment=Qt.AlignCenter)
 
         layout_principal.addLayout(tabla_layout)
@@ -111,8 +114,6 @@ class DisponibilidadCitas(QMainWindow):
         self.setCentralWidget(container)
 
         self.cargar_citas()
-
-
 
     def regresar(self):
         self.close()

@@ -12,7 +12,8 @@ class RegistroPago(QMainWindow):
     def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Registro de Pagos")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.regresar_callback = regresar_callback
         self.initUI()
 
@@ -28,18 +29,6 @@ class RegistroPago(QMainWindow):
                     stop: 1 #EADAD3
                 );
                 font-family: 'Poppins';
-            }
-            QPushButton {
-                background-color: transparent;
-                color: #101111;
-                font-family: 'Open Sans';
-                padding: 10px;
-                font-size: 14pt;
-                font-weight: bold;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                color: gray;
             }
             QLineEdit {
                 background: white;
@@ -65,20 +54,32 @@ class RegistroPago(QMainWindow):
                 border-bottom: 2px solid #D7CCC8;
                 padding: 15px;
             }
-        """
-        )
+        """)
 
         layout_principal = QVBoxLayout(widget_principal)
         layout_principal.setContentsMargins(30, 30, 30, 30)
         layout_principal.setSpacing(20)
 
-        # Barra superior
+        # ⬅️ Barra superior
         layout_superior = QHBoxLayout()
-        boton_regresar = QPushButton()
-        boton_regresar.setIcon(QIcon('resources/flecha_regresar.png'))
-        boton_regresar.setIconSize(QSize(40, 40))
-        boton_regresar.setStyleSheet("border: none; background: transparent;")
+
+        boton_regresar = QPushButton("⤺ Regresar")
+        boton_regresar.setObjectName("regresar")
         boton_regresar.clicked.connect(self.volver_a_home)
+        boton_regresar.setStyleSheet("""
+            QPushButton {
+                background-color: #231f20;
+                color: #fcb3b3;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 150px;
+            }
+            QPushButton:hover {
+                background-color: #333333;
+            }
+        """)
 
         self.busqueda = QLineEdit()
         self.busqueda.setPlaceholderText("Buscar por cliente...")
@@ -89,13 +90,19 @@ class RegistroPago(QMainWindow):
         layout_superior.addWidget(self.busqueda)
         layout_principal.addLayout(layout_superior)
 
-        # Título
+        # 🎯 Contenedor de título transparente
+        contenedor_titulo = QWidget()
+        contenedor_titulo.setStyleSheet("background-color: transparent;")
+        contenedor_layout = QVBoxLayout(contenedor_titulo)
+        contenedor_layout.setContentsMargins(0, 0, 0, 0)
+
         titulo = QLabel("Registro de Pagos")
         titulo.setAlignment(Qt.AlignCenter)
-        titulo.setStyleSheet("font: bold 38px 'Roboto'; color: black; padding: 15px;")
-        layout_principal.addWidget(titulo)
+        titulo.setStyleSheet("font: bold 38px 'Roboto'; color: black; padding: 15px; background-color: transparent;")
+        contenedor_layout.addWidget(titulo)
+        layout_principal.addWidget(contenedor_titulo)
 
-        # Tabla
+        # 📋 Tabla de pagos
         self.tabla_pagos = QTableWidget(0, 3)
         self.tabla_pagos.setHorizontalHeaderLabels(["Cliente", "Monto", "Método"])
         self.tabla_pagos.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -103,9 +110,9 @@ class RegistroPago(QMainWindow):
         self.tabla_pagos.setShowGrid(True)
         layout_principal.addWidget(self.tabla_pagos)
 
-        # Logo
+        # 🖼️ Logo
         lbl_logo = QLabel()
-        pixmap = QPixmap('resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio)
+        pixmap = QPixmap('resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         lbl_logo.setPixmap(pixmap)
         lbl_logo.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         lbl_logo.setStyleSheet("padding: 0 10px 10px 0; background: transparent;")

@@ -4,29 +4,26 @@ from PyQt5.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QHeaderView, QLineEdit, QMessageBox
 )
-from PyQt5.QtGui import QIcon, QColor, QPixmap
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
 
 from views.agregar_promocion import AgregarPromocion
 from views.modificar_promocion import ModificarPromocion
-from models.promocion import obtener_promociones, eliminar_promocion  # ← DEBES CREAR ESTE MODELO
+from models.promocion import obtener_promociones, eliminar_promocion
 
 class VentanaPromociones(QMainWindow):
     def __init__(self, regresar_callback=None):
         super().__init__()
-        self.regresar_callback = regresar_callback  
+        self.regresar_callback = regresar_callback
         self.setWindowTitle("Promociones")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.promocion_seleccionada = None
 
         self.setStyleSheet("""
             QWidget {
-                background: qlineargradient(
-                    x1: 0, y1: 0,
-                    x2: 0, y2: 1,
-                    stop: 0 #EBAAAA,
-                    stop: 1 #EADAD3
-                );
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #EBAAAA, stop: 1 #EADAD3);
                 font-family: 'Poppins';
             }
             QPushButton#regresar, QPushButton#salir {
@@ -49,8 +46,8 @@ class VentanaPromociones(QMainWindow):
         layout_principal.setContentsMargins(30, 30, 30, 30)
         layout_principal.setSpacing(20)
 
-        # --- Barra superior ---
-        layout_superior = QHBoxLayout()
+        # Botones superiores
+        barra_top = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
         self.btn_regresar.clicked.connect(self.volver_callback)
@@ -59,13 +56,13 @@ class VentanaPromociones(QMainWindow):
         self.btn_salir.setObjectName("salir")
         self.btn_salir.clicked.connect(self.close)
 
-        layout_superior.addWidget(self.btn_regresar)
-        layout_superior.addStretch()
-        layout_superior.addWidget(self.btn_salir)
-        layout_principal.addLayout(layout_superior)
+        barra_top.addWidget(self.btn_regresar)
+        barra_top.addStretch()
+        barra_top.addWidget(self.btn_salir)
+        layout_principal.addLayout(barra_top)
 
-        # --- Barra de búsqueda ---
-        layout_busqueda = QHBoxLayout()
+        # Buscar
+        barra_busqueda = QHBoxLayout()
         self.busqueda = QLineEdit()
         self.busqueda.setPlaceholderText("Buscar...")
         self.busqueda.setStyleSheet("""
@@ -78,25 +75,26 @@ class VentanaPromociones(QMainWindow):
             }
         """)
         self.busqueda.textChanged.connect(self.buscar_promocion)
-        layout_busqueda.addStretch()
-        layout_busqueda.addWidget(self.busqueda)
-        layout_busqueda.addStretch()
-        layout_principal.addLayout(layout_busqueda)
+        barra_busqueda.addStretch()
+        barra_busqueda.addWidget(self.busqueda)
+        barra_busqueda.addStretch()
+        layout_principal.addLayout(barra_busqueda)
 
-        # --- Título ---
+        # Título
         titulo = QLabel("Promociones")
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("""
             font: bold 38px 'Roboto';
-            color: black;
-            padding: 15px;
+            color: #000000;
             background: transparent;
+            padding: 15px;
         """)
+
         layout_principal.addWidget(titulo)
 
-        # --- Botones principales ---
-        layout_botones = QHBoxLayout()
-        layout_botones.setSpacing(25)
+        # Botones principales
+        botones = QHBoxLayout()
+        botones.setSpacing(25)
 
         btn_agregar = QPushButton("Agregar promoción")
         btn_agregar.setStyleSheet("""
@@ -113,7 +111,7 @@ class VentanaPromociones(QMainWindow):
             }
         """)
         btn_agregar.clicked.connect(self.abrir_agregar_promocion)
-        layout_botones.addWidget(btn_agregar)
+        botones.addWidget(btn_agregar)
 
         self.btn_modificar = QPushButton("Modificar promoción")
         self.btn_modificar.setEnabled(False)
@@ -131,7 +129,7 @@ class VentanaPromociones(QMainWindow):
             }
         """)
         self.btn_modificar.clicked.connect(self.abrir_modificar_promocion)
-        layout_botones.addWidget(self.btn_modificar)
+        botones.addWidget(self.btn_modificar)
 
         self.btn_eliminar = QPushButton("Eliminar promoción")
         self.btn_eliminar.setEnabled(False)
@@ -149,14 +147,14 @@ class VentanaPromociones(QMainWindow):
             }
         """)
         self.btn_eliminar.clicked.connect(self.eliminar_promocion)
-        layout_botones.addWidget(self.btn_eliminar)
+        botones.addWidget(self.btn_eliminar)
 
-        layout_principal.addLayout(layout_botones)
+        layout_principal.addLayout(botones)
 
-        # --- Tabla de promociones ---
+        # Tabla
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(4)
-        self.tabla.setHorizontalHeaderLabels(["Descripción", "Servicios", "Precio", "Válido hasta"])
+        self.tabla.setHorizontalHeaderLabels(["Descripción", "Servicios", "% Descuento", "Válido hasta"])
         self.tabla.setStyleSheet("""
             QTableWidget {
                 background: #ffefe3;
@@ -171,58 +169,21 @@ class VentanaPromociones(QMainWindow):
                 padding: 12px;
                 border: none;
             }
-            QTableWidget::item {
-                border-bottom: 2px solid #D7CCC8;
-                padding: 15px;
-            }
         """)
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.verticalHeader().setVisible(False)
-        self.tabla.setShowGrid(True)
         self.tabla.itemSelectionChanged.connect(self.seleccionar_promocion)
         layout_principal.addWidget(self.tabla)
 
-        # --- Logo ---
-        lbl_logo = QLabel()
-        pixmap = QPixmap('resources/logo_sinfondo.png').scaled(80, 80, Qt.KeepAspectRatio)
-        lbl_logo.setPixmap(pixmap)
-        lbl_logo.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-        lbl_logo.setStyleSheet("padding: 0 10px 10px 0; background: transparent;")
-        layout_principal.addWidget(lbl_logo, alignment=Qt.AlignRight | Qt.AlignBottom)
+        # Logo
+        logo = QLabel()
+        logo.setPixmap(QPixmap("resources/logo_sinfondo.png").scaled(80, 80, Qt.KeepAspectRatio))
+        logo.setAlignment(Qt.AlignRight)
+        logo.setStyleSheet("padding: 10px; background: transparent;")
+        layout_principal.addWidget(logo, alignment=Qt.AlignRight)
 
         self.cargar_promociones()
 
-    # --- Funcionalidad de botones ---
-    def abrir_agregar_promocion(self):
-        self.ventana_agregar = AgregarPromocion(regresar_callback=self.mostrar)
-        self.ventana_agregar.show()
-        self.hide()
-
-    def abrir_modificar_promocion(self):
-        if self.promocion_seleccionada:
-            self.ventana_modificar = ModificarPromocion(
-                promocion=self.promocion_seleccionada,
-                regresar_callback=self.mostrar
-            )
-            self.ventana_modificar.show()
-            self.hide()
-
-    def eliminar_promocion(self):
-        if not self.promocion_seleccionada:
-            return
-
-        id_promo = self.promocion_seleccionada["ID_Promocion"]  # ← corregido
-        confirm = QMessageBox.question(self, "Confirmar eliminación",
-                                       "¿Estás seguro de eliminar esta promoción?",
-                                       QMessageBox.Yes | QMessageBox.No)
-        if confirm == QMessageBox.Yes:
-            if eliminar_promocion(id_promo):
-                QMessageBox.information(self, "Éxito", "Promoción eliminada correctamente.")
-                self.cargar_promociones()
-            else:
-                QMessageBox.critical(self, "Error", "No se pudo eliminar la promoción.")
-
-    # --- Utilidades ---
     def cargar_promociones(self):
         self.tabla.setRowCount(0)
         promociones = obtener_promociones()
@@ -231,21 +192,45 @@ class VentanaPromociones(QMainWindow):
             self.tabla.insertRow(row)
             self.tabla.setItem(row, 0, QTableWidgetItem(promo["Descripcion"]))
             self.tabla.setItem(row, 1, QTableWidgetItem(promo["Servicios"]))
-            self.tabla.setItem(row, 2, QTableWidgetItem(str(promo["Descuento"])))
-            self.tabla.setItem(row, 3, QTableWidgetItem(str(promo["Fecha_Fin"])))
+            self.tabla.setItem(row, 2, QTableWidgetItem(f"{promo['Descuento']}%"))
+            fecha_fin_str = promo["Fecha_Fin"].strftime("%Y-%m-%d")
+            self.tabla.setItem(row, 3, QTableWidgetItem(fecha_fin_str))
             self.tabla.setVerticalHeaderItem(row, QTableWidgetItem(str(promo["ID_Promocion"])))
 
-    def seleccionar_promocion(self):
-        selected = self.tabla.currentRow()
-        if selected >= 0:
-            self.promocion_seleccionada = {
-                "ID_Promocion": int(self.tabla.verticalHeaderItem(selected).text()),  # ← CORREGIDO
-                "Descripcion": self.tabla.item(selected, 0).text(),
-                "Servicios": self.tabla.item(selected, 1).text(),
-                "Descuento": self.tabla.item(selected, 2).text(),                      # ← CAMBIADO de "Precio"
-                "Fecha_Fin": self.tabla.item(selected, 3).text()                       # ← CAMBIADO de "Valido_Hasta"
-            }
+    def abrir_agregar_promocion(self):
+        self.ventana_agregar = AgregarPromocion(regresar_callback=self.recargar_y_mostrar)
+        self.ventana_agregar.show()
+        self.hide()
 
+    def abrir_modificar_promocion(self):
+        if self.promocion_seleccionada:
+            self.ventana_modificar = ModificarPromocion(
+                promocion=self.promocion_seleccionada,
+                regresar_callback=self.recargar_y_mostrar
+            )
+            self.ventana_modificar.show()
+            self.hide()
+
+    def eliminar_promocion(self):
+        if not self.promocion_seleccionada:
+            return
+        confirm = QMessageBox.question(self, "Confirmar eliminación",
+            "¿Estás seguro de eliminar esta promoción?", QMessageBox.Yes | QMessageBox.No)
+        if confirm == QMessageBox.Yes:
+            if eliminar_promocion(self.promocion_seleccionada["ID_Promocion"]):
+                QMessageBox.information(self, "Éxito", "Promoción eliminada correctamente.")
+                self.cargar_promociones()
+
+    def seleccionar_promocion(self):
+        fila = self.tabla.currentRow()
+        if fila >= 0:
+            self.promocion_seleccionada = {
+                "ID_Promocion": int(self.tabla.verticalHeaderItem(fila).text()),
+                "Descripcion": self.tabla.item(fila, 0).text(),
+                "Servicios": self.tabla.item(fila, 1).text(),
+                "Descuento": self.tabla.item(fila, 2).text().replace('%', ''),
+                "Fecha_Fin": self.tabla.item(fila, 3).text()
+            }
             self.btn_modificar.setEnabled(True)
             self.btn_eliminar.setEnabled(True)
         else:
@@ -264,12 +249,13 @@ class VentanaPromociones(QMainWindow):
             self.regresar_callback()
         self.close()
 
-    def mostrar(self):
+    def recargar_y_mostrar(self):
+        self.cargar_promociones()
         self.show()
         self.raise_()
         self.activateWindow()
         self.setWindowState(Qt.WindowActive)
-        self.showFullScreen()
+        self.showMaximized()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

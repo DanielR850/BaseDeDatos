@@ -1,27 +1,28 @@
-import sys
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QFrame, QSizePolicy
+    QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
+    QSizePolicy, QApplication
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from views.generar_pago import GenerarPago
-from models.pago import insertar_pago, obtener_id_metodo
+from models.cliente import insertar_cliente
+from models.cita import crear_cita
+
 
 class ResumenCitaWindow(QWidget):
     def __init__(self, cliente=None, servicios=None, regresar_callback=None):
         super().__init__()
-        self.cliente = cliente
+        self.setWindowTitle("Resumen de Cita")
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
+        self.cliente = cliente or {}
         self.servicios = servicios or []
         self.regresar_callback = regresar_callback
 
         self.setStyleSheet("""
             QWidget {
-                background: qlineargradient(
-                    x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #f8c8dc,
-                    stop: 1 #fefefe
-                );
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                            stop: 0 #f8c8dc, stop: 1 #fefefe);
                 font-family: 'Poppins';
             }
             QLabel {
@@ -32,10 +33,12 @@ class ResumenCitaWindow(QWidget):
             QPushButton#pago {
                 background-color: #231f20;
                 color: #fcb3b3;
-                padding: 10px 25px;
-                font-size: 16pt;
+                padding: 15px 35px;
+                font-size: 18pt;
                 border-radius: 20px;
                 font-weight: bold;
+                min-width: 220px;
+                min-height: 60px;
             }
             QPushButton#pago:hover {
                 background-color: #333333;
@@ -43,9 +46,10 @@ class ResumenCitaWindow(QWidget):
             QPushButton#regresar {
                 background-color: transparent;
                 border: none;
-                color: black;
-                font: bold 13pt 'Poppins';
-                padding: 5px 10px;
+                color: #101111;
+                font: bold 15pt 'Poppins';
+                padding: 10px;
+                min-width: 120px;
             }
             QPushButton#regresar:hover {
                 color: gray;
@@ -55,120 +59,107 @@ class ResumenCitaWindow(QWidget):
         self.initUI()
 
     def initUI(self):
-        layout_principal = QVBoxLayout(self)
-        layout_principal.setContentsMargins(80, 40, 80, 40)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(80, 40, 80, 40)
+        layout.setSpacing(20)
 
-        fila_superior = QHBoxLayout()
+        # --- Botón regresar totalmente a la izquierda ---
+        top_bar = QHBoxLayout()
         self.btn_regresar = QPushButton("⤺ Regresar")
         self.btn_regresar.setObjectName("regresar")
         self.btn_regresar.clicked.connect(self.volver_a_agendar)
-        fila_superior.addWidget(self.btn_regresar, alignment=Qt.AlignLeft)
-        layout_principal.addLayout(fila_superior)
+        top_bar.addWidget(self.btn_regresar, alignment=Qt.AlignLeft)
+        layout.addLayout(top_bar)
 
+        # --- Contenedor principal ---
         ticket = QFrame()
-        ticket.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 20px;
-                padding: 30px;
-            }
-        """)
+        ticket.setStyleSheet("background-color: white; border-radius: 20px; padding: 30px;")
         ticket.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         ticket_layout = QVBoxLayout(ticket)
         ticket_layout.setSpacing(20)
 
-        top_row = QHBoxLayout()
+        # --- Header con logo y nombre del salón ---
+        header = QHBoxLayout()
         logo = QLabel()
-        pixmap = QPixmap("resources/logo_sinfondo.png").scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        logo.setPixmap(pixmap)
-        logo.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        top_row.addWidget(logo, alignment=Qt.AlignLeft)
+        pixmap = QPixmap("resources/logo_sinfondo.png")
+        if not pixmap.isNull():
+            logo.setPixmap(pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        header.addWidget(logo)
 
-        header = QVBoxLayout()
-        nombre_salon = QLabel("ATENAS DUARTE SALÓN Y MÁS")
-        nombre_salon.setStyleSheet("font-size: 20pt; font-weight: bold;")
+        salon_label = QLabel("ATENAS DUARTE SALÓN Y MÁS")
+        salon_label.setStyleSheet("font-size: 20pt; font-weight: bold;")
+        info = QLabel(f"Cliente: {self.cliente.get('nombre', '')} {self.cliente.get('apellido_paterno', '')} {self.cliente.get('apellido_materno', '')}  Tel: {self.cliente.get('telefono', '')}")
+        info_layout = QVBoxLayout()
+        info_layout.addWidget(salon_label)
+        info_layout.addWidget(info)
+        header.addLayout(info_layout)
+        ticket_layout.addLayout(header)
 
-        cliente_nombre = f"{self.cliente.get('nombre', '')} {self.cliente.get('apellido_paterno', '')} {self.cliente.get('apellido_materno', '')}"
-        cliente_telefono = self.cliente.get("telefono", "")
-        num_cliente = QLabel(f"Cliente: {cliente_nombre}     Tel: {cliente_telefono}")
-        header.addWidget(nombre_salon)
-        header.addWidget(num_cliente)
-        top_row.addLayout(header)
-        ticket_layout.addLayout(top_row)
+        # --- Servicios y precios ---
+        total = self.cliente.get("precio", 0.0)
 
         def agregar_cliente(nombre, costo, servicio):
             fila1 = QHBoxLayout()
-            cliente_lbl = QLabel("Cliente:")
-            cliente_nombre = QLabel(nombre)
-            fila1.addWidget(cliente_lbl)
-            fila1.addWidget(cliente_nombre)
+            fila1.addWidget(QLabel("Cliente:"))
+            fila1.addWidget(QLabel(nombre))
             fila1.addStretch()
-
-            costo_lbl = QLabel("Costo:")
-            costo_val = QLabel(f"${costo:.2f}")
-            fila1.addWidget(costo_lbl)
-            fila1.addWidget(costo_val)
+            fila1.addWidget(QLabel("Costo:"))
+            fila1.addWidget(QLabel(f"${costo:.2f}"))
             ticket_layout.addLayout(fila1)
 
             fila2 = QHBoxLayout()
-            serv_lbl = QLabel("Servicio requerido:")
-            serv_val = QLabel(servicio)
-            fila2.addWidget(serv_lbl)
+            fila2.addWidget(QLabel("Servicio requerido:"))
             fila2.addStretch()
-            fila2.addWidget(serv_val)
+            fila2.addWidget(QLabel(servicio))
             ticket_layout.addLayout(fila2)
 
-        principal_nombre = f"{self.cliente.get('nombre', '')} {self.cliente.get('apellido_paterno', '')} {self.cliente.get('apellido_materno', '')}"
-        principal_servicio = self.cliente.get("detalle", "")
-        principal_costo = self.cliente.get("precio", 0.0)
-        agregar_cliente(principal_nombre, principal_costo, principal_servicio)
+        agregar_cliente(
+            f"{self.cliente.get('nombre', '')} {self.cliente.get('apellido_paterno', '')} {self.cliente.get('apellido_materno', '')}",
+            self.cliente.get("precio", 0.0),
+            self.cliente.get("detalle", "")
+        )
 
-        total = principal_costo
         for persona in self.servicios:
-            nombre = f"{persona['nombre']} {persona['apellido_paterno']} {persona['apellido_materno']}"
-            servicio = persona['detalle']
-            costo = persona.get('precio', 0.0)
-            total += costo
-            agregar_cliente(nombre, costo, servicio)
+            agregar_cliente(
+                f"{persona.get('nombre', '')} {persona.get('apellido_paterno', '')} {persona.get('apellido_materno', '')}",
+                persona.get("precio", 0.0),
+                persona.get("detalle", "")
+            )
+            total += persona.get("precio", 0.0)
 
+        # --- Fecha y hora ---
         fecha = self.cliente.get("fecha", "N/A")
         hora = self.cliente.get("hora", "N/A")
-        fecha_hora = QHBoxLayout()
-        fecha_lbl = QLabel(f"Fecha: {fecha}")
-        hora_lbl = QLabel(f"Hora: {hora}")
-        fecha_hora.addWidget(fecha_lbl)
-        fecha_hora.addStretch()
-        fecha_hora.addWidget(hora_lbl)
-        ticket_layout.addLayout(fecha_hora)
+        ticket_layout.addLayout(self.build_row("Fecha:", fecha, "Hora:", hora))
 
-        total_layout = QHBoxLayout()
-        total_label = QLabel("Total a pagar:")
-        total_label.setStyleSheet("font-weight: bold; font-size: 16pt;")
-        total_val = QLabel(f"${total:.2f}")
-        total_val.setStyleSheet("font-weight: bold; font-size: 16pt;")
-        total_layout.addWidget(total_label)
-        total_layout.addStretch()
-        total_layout.addWidget(total_val)
-        ticket_layout.addLayout(total_layout)
+        # --- Total ---
+        total_row = self.build_row("Total a pagar:", f"${total:.2f}")
+        ticket_layout.addLayout(total_row)
 
-        pago_btn = QPushButton("Realizar Pago")
-        pago_btn.setObjectName("pago")
-        pago_btn.clicked.connect(lambda: self.abrir_pago(total))
+        # --- Botón de pago ---
+        btn_pago = QPushButton("Realizar Pago")
+        btn_pago.setObjectName("pago")
+        btn_pago.clicked.connect(lambda: self.abrir_pago(total))
         ticket_layout.addStretch()
-        ticket_layout.addWidget(pago_btn, alignment=Qt.AlignRight)
+        ticket_layout.addWidget(btn_pago, alignment=Qt.AlignRight)
 
-        layout_principal.addWidget(ticket, alignment=Qt.AlignCenter)
+        layout.addWidget(ticket, alignment=Qt.AlignCenter)
 
-    def volver(self):
-        self.close()
-        if self.regresar_callback:
-            self.regresar_callback()
+    def build_row(self, label1, value1, label2=None, value2=None):
+        row = QHBoxLayout()
+        row.addWidget(QLabel(label1))
+        row.addWidget(QLabel(value1))
+        row.addStretch()
+        if label2 and value2:
+            row.addWidget(QLabel(label2))
+            row.addWidget(QLabel(value2))
+        return row
 
     def abrir_pago(self, total):
-        from models.cliente import insertar_cliente
-        from models.cita import crear_cita
+        from models.session import SesionActual
+        from models.empleado import obtener_id_empleado_por_usuario
 
-        # Insertar cliente y obtener ID
+        # 1. Obtener ID_Cliente
         id_cliente = insertar_cliente(
             self.cliente.get("nombre", ""),
             self.cliente.get("apellido_paterno", ""),
@@ -180,20 +171,26 @@ class ResumenCitaWindow(QWidget):
             print("[ERROR] No se pudo insertar el cliente.")
             return
 
-        # Crear cita con cliente recién insertado
-        fecha = self.cliente.get("fecha")
-        hora = self.cliente.get("hora")
-        id_empleado = 1  # Puedes cambiar esto según el contexto
+        # 2. Obtener ID_Empleado desde sesión actual
+        id_usuario = SesionActual.id_usuario
+        if not id_usuario:
+            print("[ERROR] Sesión inválida: no hay usuario activo.")
+            return
 
-        id_cita = crear_cita(id_cliente, id_empleado, fecha, hora)
+        id_empleado = obtener_id_empleado_por_usuario(id_usuario)
+        if not id_empleado:
+            print("[ERROR] No se encontró el empleado correspondiente.")
+            return
 
+        # 3. Crear la cita
+        id_cita = crear_cita(id_cliente, id_empleado, self.cliente.get("fecha"), self.cliente.get("hora"))
         if not id_cita:
             print("[ERROR] No se pudo crear la cita.")
             return
 
-        # Guardar ID de cita en cliente y pasarla
         self.cliente["id_cita"] = id_cita
 
+        # 4. Abrir ventana de pago
         self.pago_window = GenerarPago(
             cliente=self.cliente,
             total=total,
@@ -202,10 +199,6 @@ class ResumenCitaWindow(QWidget):
         )
         self.pago_window.show()
         self.hide()
-
-
-
-
 
 
     def mostrar_resumen(self):
@@ -219,9 +212,3 @@ class ResumenCitaWindow(QWidget):
         self.agendar_cita_window = AgendarCitaWindow()
         self.agendar_cita_window.show()
         self.close()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = ResumenCitaWindow()
-    ventana.show()
-    sys.exit(app.exec_())

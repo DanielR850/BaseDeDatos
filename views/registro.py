@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QPainter, QPen
 from PyQt5.QtCore import Qt
 from models.usuario import insertar_usuario, obtener_id_rol
+import re
+import bcrypt
 
 class IconoOjo(QPushButton):
     def __init__(self, input_field):
@@ -37,7 +39,7 @@ class VentanaRegistro(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Registro de Usuario")
-        self.showFullScreen()
+        self.showMaximized()
         self.initUI()
 
     def initUI(self):
@@ -90,7 +92,7 @@ class VentanaRegistro(QWidget):
         top_row = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
-        self.btn_regresar.clicked.connect(self.regresar)  # <-- AÑADIDO AQUÍ
+        self.btn_regresar.clicked.connect(self.regresar)
         self.btn_salir = QPushButton("Salir")
         self.btn_salir.setObjectName("salir")
         self.btn_salir.clicked.connect(self.close)
@@ -115,6 +117,7 @@ class VentanaRegistro(QWidget):
         # Formulario
         form_layout = QVBoxLayout()
 
+        # Fila 1: nombre y apellidos
         fila1 = QHBoxLayout()
         self.nombre = QLineEdit()
         self.apellido_p = QLineEdit()
@@ -123,23 +126,26 @@ class VentanaRegistro(QWidget):
         fila1.addLayout(self.build_field("Apellido Paterno", self.apellido_p))
         fila1.addLayout(self.build_field("Apellido Materno", self.apellido_m))
 
+        # Fila 2: tipo de usuario + nombre de usuario
         fila2 = QHBoxLayout()
         self.tipo_usuario = QComboBox()
         self.tipo_usuario.addItems(["Administrador", "Empleado"])
+        self.nombre_usuario = QLineEdit()
         fila2.addLayout(self.build_field("Tipo de Usuario", self.tipo_usuario))
+        fila2.addLayout(self.build_field("Usuario", self.nombre_usuario))
 
+        # Fila 3: contraseñas
         fila3 = QHBoxLayout()
         self.contrasena = QLineEdit()
         self.contrasena.setEchoMode(QLineEdit.Password)
         self.confirmar_contrasena = QLineEdit()
         self.confirmar_contrasena.setEchoMode(QLineEdit.Password)
-
         pass1 = self.build_field("Contraseña", self.contrasena, with_eye=True)
         pass2 = self.build_field("Confirmar Contraseña", self.confirmar_contrasena, with_eye=True)
-
         fila3.addLayout(pass1)
         fila3.addLayout(pass2)
 
+        # Ensamblar formulario
         form_layout.addLayout(fila1)
         form_layout.addSpacing(15)
         form_layout.addLayout(fila2)
@@ -173,48 +179,72 @@ class VentanaRegistro(QWidget):
             field_container.setStyleSheet("background: transparent;")  # 👈 Aquí hacemos el contenedor transparente
             layout.addWidget(label)
             layout.addWidget(field_container)
-        else:
+        else: 
             layout.addWidget(label)
             layout.addWidget(widget)
         return layout
 
 
     def registrar_usuario(self):
-        nombre = self.nombre.text().strip()
-        ap_paterno = self.apellido_p.text().strip()
-        ap_materno = self.apellido_m.text().strip()
-        tipo = self.tipo_usuario.currentText().strip()  # "Administrador" o "Empleado"
-        password = self.contrasena.text()
-        confirmar = self.confirmar_contrasena.text()
+        try:
+            nombre = self.nombre.text().strip()
+            ap_paterno = self.apellido_p.text().strip()
+            ap_materno = self.apellido_m.text().strip()
+            nombre_usuario = self.nombre_usuario.text().strip()
+            tipo = self.tipo_usuario.currentText().strip()
+            password = self.contrasena.text()
+            confirmar = self.confirmar_contrasena.text()
 
-        if not all([nombre, ap_paterno, ap_materno, password, confirmar]):
-            QMessageBox.warning(self, "Campos incompletos", "Por favor, llena todos los campos.")
-            return
+            if not all([nombre, ap_paterno, ap_materno, nombre_usuario, password, confirmar]):
+                QMessageBox.warning(self, "Campos incompletos", "Por favor, llena todos los campos.")
+                return
 
-        if password != confirmar:
-            QMessageBox.critical(self, "Contraseñas no coinciden", "Las contraseñas ingresadas no coinciden.")
-            return
+            if password != confirmar:
+                QMessageBox.critical(self, "Contraseñas no coinciden", "Las contraseñas ingresadas no coinciden.")
+                return
 
-        # 🔄 Mapear tipo a valor exacto en tabla 'rol'
-        rol_mapeado = "Admin" if tipo == "Administrador" else "Empleado"
+            # Validación de contraseña segura
+            if len(password) < 10:
+                QMessageBox.warning(self, "Contraseña débil", "La contraseña debe tener al menos 10 caracteres.")
+                return
 
-        # 🧠 Buscar ID_Usuario desde la tabla rol
-        from models.usuario import obtener_id_rol  # Asegúrate de tener esta función definida
-        id_usuario = obtener_id_rol(rol_mapeado)
+            if not re.search(r"[A-Za-z]", password):
+                QMessageBox.warning(self, "Contraseña inválida", "Debe contener al menos una letra.")
+                return
 
-        if id_usuario is None:
-            QMessageBox.critical(self, "Error", "No se pudo determinar el rol del usuario.")
-            return
+            if not re.search(r"[0-9]", password):
+                QMessageBox.warning(self, "Contraseña inválida", "Debe contener al menos un número.")
+                return
 
-        from models.usuario import insertar_usuario  # Asegúrate que reciba ID_Usuario
-        exito = insertar_usuario(nombre, ap_paterno, ap_materno, password, id_usuario)
+            if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+                QMessageBox.warning(self, "Contraseña inválida", "Debe contener al menos un carácter especial.")
+                return
 
-        if exito:
-            QMessageBox.information(self, "Éxito", "Usuario registrado correctamente.")
-            self.regresar()
-        else:
-            QMessageBox.critical(self, "Error", "Ocurrió un error al registrar el usuario.")
+            # Encriptar la contraseña
+            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
+            # Mapeo de rol
+            rol_mapeado = "Admin" if tipo == "Administrador" else "Empleado"
+
+            from models.usuario import obtener_id_rol, insertar_usuario
+            id_usuario = obtener_id_rol(rol_mapeado)
+
+            if id_usuario is None:
+                QMessageBox.critical(self, "Error", "No se pudo determinar el rol del usuario.")
+                return
+
+            exito = insertar_usuario(nombre, ap_paterno, ap_materno, nombre_usuario, hashed_password, id_usuario)
+
+            if exito:
+                QMessageBox.information(self, "Éxito", "Usuario registrado correctamente.")
+                self.regresar()
+            else:
+                QMessageBox.critical(self, "Error", "El nombre de usuario ya está en uso. Elige otro.")
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error", "Ocurrió un error inesperado al registrar.")
 
     def regresar(self):
         from views.login import LoginWindow

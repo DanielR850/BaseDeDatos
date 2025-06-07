@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QPainter, QPen
 import os
 from views.home import HomeWindow
-
+from models.session import SesionActual  # Debes tener esto creado
 from models.usuario import verificar_credenciales
 from views.registro import VentanaRegistro
 
@@ -41,8 +41,8 @@ class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Iniciar Sesión")
-        self.showFullScreen()  # ← pantalla completa real
-
+        self.setMinimumSize(500, 900)       # ⬅️ Importante
+        self.showMaximized()  # ✅ Esto abre la ventana maximizada siempre
         self.setStyleSheet("""
         QWidget {
             background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e1938c, stop: 1 #d6c6c2);
@@ -78,9 +78,10 @@ class LoginWindow(QWidget):
 
     def initUI(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.setContentsMargins(100, 30, 100, 30)
+        main_layout.setSpacing(20)
+        main_layout.setAlignment(Qt.AlignTop)
 
-        # Logo
         logo = QLabel()
         logo_path = os.path.join(os.path.dirname(__file__), "..", "resources", "logo_sinfondo.png")
         pixmap = QPixmap(logo_path)
@@ -97,26 +98,37 @@ class LoginWindow(QWidget):
 
         self.roles_dict = {"Administrador": "Admin", "Empleado": "Empleado"}
 
-        # Tipo de Usuario
+        # Tipo de usuario
+        label_tipo = QLabel("Tipo de Usuario")
+        label_tipo.setAlignment(Qt.AlignCenter)
         self.tipo_usuario = QComboBox()
         self.tipo_usuario.addItems(self.roles_dict.keys())
-        self.tipo_usuario.setFixedWidth(ancho_campo)
-        form_layout.addWidget(QLabel("Tipo de Usuario"), alignment=Qt.AlignCenter)
+        self.tipo_usuario.setMinimumWidth(ancho_campo)
+        self.tipo_usuario.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+
+        form_layout.addWidget(label_tipo)
         form_layout.addWidget(self.tipo_usuario, alignment=Qt.AlignCenter)
 
         # Usuario
+        label_usuario = QLabel("Usuario")
+        label_usuario.setAlignment(Qt.AlignCenter)
         self.usuario = QLineEdit()
         self.usuario.setPlaceholderText("Usuario")
-        self.usuario.setFixedWidth(ancho_campo)
-        form_layout.addWidget(QLabel("Usuario"), alignment=Qt.AlignCenter)
+        self.usuario.setMinimumWidth(ancho_campo)
+        self.usuario.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+
+        form_layout.addWidget(label_usuario)
         form_layout.addWidget(self.usuario, alignment=Qt.AlignCenter)
 
-        # Contraseña + botón ojo
+        # Contraseña
+        label_contra = QLabel("Contraseña")
+        label_contra.setAlignment(Qt.AlignCenter)
         self.contrasena = QLineEdit()
-        self.contrasena.setEchoMode(QLineEdit.Password)
         self.contrasena.setPlaceholderText("Contraseña")
+        self.contrasena.setEchoMode(QLineEdit.Password)
+        self.contrasena.setMinimumWidth(ancho_campo - 40)
+        self.contrasena.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         self.contrasena.setFixedHeight(55)
-        self.contrasena.setFixedWidth(ancho_campo - 40)
         self.contrasena.setStyleSheet("""
             QLineEdit {
                 background-color: #ffefe3;
@@ -152,27 +164,31 @@ class LoginWindow(QWidget):
         pass_widget = QWidget()
         pass_widget.setLayout(pass_layout)
         pass_widget.setStyleSheet("background: transparent;")
+        pass_widget.setMinimumWidth(ancho_campo)
+        pass_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
 
-        form_layout.addWidget(QLabel("Contraseña"), alignment=Qt.AlignCenter)
+        form_layout.addWidget(label_contra)
         form_layout.addWidget(pass_widget, alignment=Qt.AlignCenter)
 
-
         # Botones
-        btn_layout = QHBoxLayout()
         btn_login = QPushButton("Iniciar Sesión")
-        btn_login.clicked.connect(self.abrir_home)
-
+        btn_login.setFixedSize(220, 60)
         btn_registrar = QPushButton("Registrarse")
+        btn_registrar.setFixedSize(220, 60)
+
+        btn_login.clicked.connect(self.abrir_home)
         btn_registrar.clicked.connect(self.abrir_registro)
 
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(40)
+        btn_layout.addStretch()
         btn_layout.addWidget(btn_login)
         btn_layout.addWidget(btn_registrar)
+        btn_layout.addStretch()
 
         form_layout.addLayout(btn_layout)
-
         main_layout.addLayout(form_layout)
 
-                # Información de contacto (esquina inferior izquierda)
         contacto_label = QLabel(
             "Contacto para mejoras:\n"
             "leo.dav_sg@outlook.com\n"
@@ -181,13 +197,14 @@ class LoginWindow(QWidget):
             "d.reyna.burnes@gmail.com"
         )
         contacto_label.setStyleSheet("font-size: 10pt; color: #333; background: transparent;")
-        contacto_label.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
+        contacto_label.setAlignment(Qt.AlignLeft)
 
         contacto_layout = QHBoxLayout()
-        contacto_layout.addWidget(contacto_label, alignment=Qt.AlignLeft | Qt.AlignBottom)
+        contacto_layout.addWidget(contacto_label)
 
         main_layout.addStretch()
         main_layout.addLayout(contacto_layout)
+
 
     def toggle_password_visibility(self):
         if self.boton_ojo.isChecked():
@@ -207,21 +224,27 @@ class LoginWindow(QWidget):
 
         try:
             print("🔍 Verificando credenciales...")
-            if verificar_credenciales(rol_db, usuario_txt, contrasena_txt):
-                print("✅ Credenciales válidas. Intentando abrir HomeWindow...")
+            id_usuario = verificar_credenciales(rol_db, usuario_txt, contrasena_txt)
+
+            if id_usuario:
+                print(f"✅ Credenciales válidas. ID_Usuario: {id_usuario}")
+
+                # Guardar el usuario en la sesión
+                SesionActual.id_usuario = id_usuario
+                SesionActual.rol = rol_db
+
+                # Abrir la ventana principal
                 self.home = HomeWindow()
-                print("✅ HomeWindow creada exitosamente")
                 self.home.show()
                 self.close()
             else:
                 QMessageBox.warning(self, "Error de autenticación", "Usuario o contraseña incorrectos.")
+
         except Exception as e:
             print(f"❌ ERROR al crear HomeWindow: {e}")
             import traceback
             traceback.print_exc()
             QMessageBox.critical(self, "Error crítico", f"Hubo un problema al abrir el menú principal:\n{e}")
-
-
 
 
     def abrir_registro(self):

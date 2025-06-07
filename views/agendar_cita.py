@@ -2,18 +2,24 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QVBoxLayout, QHBoxLayout, QComboBox, QDateEdit, QTimeEdit,
-    QDialog
+    QDialog,QMessageBox
 )
 from PyQt5.QtCore import Qt, QDate, QTime
 from models.cita import obtener_servicios_por_variante
 from models.cita import crear_cita  # Asegúrate de importar esto arriba
-
+from models.cliente import insertar_cliente
+from models.cita import crear_cita
+from models.empleado import obtener_id_empleado_por_usuario
+from models.session import SesionActual
+from models.cita import agregar_servicio_a_cita, obtener_id_servicio_por_nombre
+from collections import defaultdict
 
 class AgendarCitaWindow(QWidget):
     def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Agendar Cita")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.regresar_callback = regresar_callback
         self.personas_agregadas = []  # ← Lista para guardar info de personas adicionales
 
@@ -157,6 +163,13 @@ class AgendarCitaWindow(QWidget):
         return group
 
     def mostrar_overlay_agregar_persona(self):
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox
+
+        cliente = self.obtener_datos_cliente_principal()
+        if not all([cliente["nombre"], cliente["apellido_paterno"], cliente["telefono"]]):
+            QMessageBox.warning(self, "Campos incompletos", "Completa los datos del cliente principal antes de continuar.")
+            return
+
         dialog = QDialog(self)
         dialog.setWindowTitle("Agregar Personas")
         dialog.setFixedSize(800, 300)
@@ -210,13 +223,15 @@ class AgendarCitaWindow(QWidget):
         btn_regresar.clicked.connect(dialog.reject)
         btn_agendar.clicked.connect(lambda: self.mostrar_formularios_por_persona(dialog, cantidad_input.text()))
 
-        botones.addWidget(btn_regresar, alignment=Qt.AlignLeft)
+        botones.addWidget(btn_regresar)
         botones.addStretch()
-        botones.addWidget(btn_agendar, alignment=Qt.AlignRight)
+        botones.addWidget(btn_agendar)
 
         layout.addStretch()
         layout.addLayout(botones)
+
         dialog.exec_()
+
 
     def mostrar_formularios_por_persona(self, parent_dialog, cantidad_texto):
         try:
@@ -281,24 +296,35 @@ class AgendarCitaWindow(QWidget):
 
         layout = QVBoxLayout(dialog)
 
+        # --- Título ---
         titulo = QLabel(f"Ingresar datos de la persona {numero}")
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("font-size: 18pt; font-weight: bold;")
         layout.addWidget(titulo)
 
+        # --- Campos de nombre ---
         nombre = QLineEdit()
         ap_paterno = QLineEdit()
         ap_materno = QLineEdit()
-        servicio = QComboBox()
-        servicio.addItems(["Uñas", "Pelo", "Masaje"])
-        detalle = QComboBox()
-        detalle.addItems(["Uñas verdes", "Uñas rojas", "Corte", "Tinte"])
 
         fila1 = QHBoxLayout()
         fila1.addLayout(self.formulario_grupo("Nombre", nombre))
         fila1.addLayout(self.formulario_grupo("Apellido Paterno", ap_paterno))
         fila1.addLayout(self.formulario_grupo("Apellido Materno", ap_materno))
         layout.addLayout(fila1)
+
+        # --- Servicio y Detalle (con datos REALES) ---
+        servicio = QComboBox()
+        detalle = QComboBox()
+
+        categorias = list(self.servicios_por_variante.keys())
+        if categorias:
+            servicio.addItems(categorias)
+            self.actualizar_detalles_por_combo(servicio, detalle)
+
+        servicio.currentTextChanged.connect(
+            lambda _: self.actualizar_detalles_por_combo(servicio, detalle)
+        )
 
         fila2 = QHBoxLayout()
         fila2.addLayout(self.formulario_grupo("Servicio", servicio))
@@ -307,6 +333,7 @@ class AgendarCitaWindow(QWidget):
 
         layout.addStretch()
 
+        # --- Botón Guardar ---
         btn_guardar = QPushButton("Guardar Persona")
         btn_guardar.clicked.connect(lambda: self.guardar_persona_y_continuar(
             dialog,
@@ -316,12 +343,9 @@ class AgendarCitaWindow(QWidget):
             servicio.currentText(),
             detalle.currentText()
         ))
-
         layout.addWidget(btn_guardar, alignment=Qt.AlignCenter)
 
-
         dialog.exec_()
-
 
     def formulario_grupo(self, texto, widget):
         vbox = QVBoxLayout()
@@ -339,12 +363,24 @@ class AgendarCitaWindow(QWidget):
             self.regresar_callback()
 
     def guardar_persona_y_continuar(self, dialog, nombre, ap_paterno, ap_materno, servicio, detalle):
+        precio = self.obtener_precio(servicio, detalle)
+
+        # 🔍 Buscar el ID del servicio para guardarlo correctamente
+        id_servicio = None
+        for s in self.servicios_por_variante.get(servicio, []):
+            if s["nombre"].strip().lower() == detalle.strip().lower():
+                id_servicio = s["id"]
+                break
+
+        print(f"🧾 Persona agregada: {nombre} - Servicio: {detalle} (ID: {id_servicio}) - Precio: {precio}")
+
         self.personas_agregadas.append({
             "nombre": nombre,
             "apellido_paterno": ap_paterno,
             "apellido_materno": ap_materno,
             "detalle": detalle,
-            "precio": self.obtener_precio(servicio, detalle)
+            "id_servicio": id_servicio,  # ✅ AGREGADO
+            "precio": precio
         })
 
         dialog.accept()
@@ -355,35 +391,69 @@ class AgendarCitaWindow(QWidget):
         else:
             self.abrir_formulario_individual(self.contador_personas + 1)
 
-
-
-
-
-
     def abrir_resumen_cita(self):
         from views.resumen_citas import ResumenCitaWindow
+        from models.session import SesionActual
+        from models.empleado import obtener_id_empleado_por_usuario
+        from models.cita import crear_cita, agregar_servicio_a_cita
 
         cliente = self.obtener_datos_cliente_principal()
 
-        # ✅ Paso 1: Crear cita real en la base de datos (cliente principal)
-        id_cliente = 1  # 🔁 Reemplaza con el ID correcto si ya lo tienes
-        id_empleado = 1  # 🔁 Reemplaza si estás manejando empleados por login
+        if (not cliente["detalle"] or
+            cliente["detalle"] == "Seleccionar detalle" or
+            self.detalle.currentData() is None):
+            QMessageBox.warning(self, "Datos incompletos", "Selecciona un servicio válido.")
+            return
+
+
+        id_cliente = insertar_cliente(
+            cliente.get("nombre", ""),
+            cliente.get("apellido_paterno", ""),
+            cliente.get("apellido_materno", ""),
+            cliente.get("telefono", "")
+        )
+
+        if not id_cliente:
+            QMessageBox.critical(self, "Error", "No se pudo registrar el cliente.")
+            return
+
+        id_usuario = SesionActual.id_usuario
+        if not id_usuario:
+            QMessageBox.critical(self, "Error de sesión", "No se ha iniciado sesión correctamente.")
+            return
+
+        id_empleado = obtener_id_empleado_por_usuario(id_usuario)
+        if not id_empleado:
+            QMessageBox.critical(self, "Error", "No se encontró el empleado asociado al usuario actual.")
+            return
+
         fecha = cliente["fecha"]
         hora = cliente["hora"]
-        
         id_cita = crear_cita(id_cliente, id_empleado, fecha, hora)
-        cliente["id_cita"] = id_cita  # ✅ Este es el dato importante
+        if not id_cita:
+            QMessageBox.critical(self, "Error", "No se pudo crear la cita.")
+            return
 
-        # ✅ También podrías agregar servicios con agregar_servicio_a_cita si quieres
+        cliente["id_cita"] = id_cita
+
+        # ✅ Agrega el servicio principal usando el ID real del QComboBox
+        id_servicio_principal = self.detalle.currentData()
+        if id_servicio_principal:
+            agregar_servicio_a_cita(id_cita, id_servicio_principal, cantidad=1)
+
+        # ✅ Agrega servicios de personas adicionales (ya deben tener el id_servicio)
+        for persona in self.personas_agregadas:
+            id_servicio = persona.get("id_servicio")
+            if id_servicio:
+                agregar_servicio_a_cita(id_cita, id_servicio, cantidad=1)
 
         self.resumen_window = ResumenCitaWindow(
             cliente=cliente,
             servicios=self.personas_agregadas,
             regresar_callback=self.mostrar
         )
-        self.resumen_window.show()
+        self.resumen_window.mostrar_resumen()
         self.hide()
-
 
 
     def actualizar_detalles_por_categoria(self):
@@ -391,11 +461,30 @@ class AgendarCitaWindow(QWidget):
         self.detalle.clear()
 
         if categoria in self.servicios_por_variante:
-            self.detalle.addItem("Seleccionar detalle")
+            self.detalle.addItem("Seleccionar detalle", None)  # Placeholder sin ID
             for servicio in self.servicios_por_variante[categoria]:
-                self.detalle.addItem(servicio["nombre"])
+                nombre = servicio.get("nombre")
+                id_servicio = servicio.get("id")
+                self.detalle.addItem(nombre, id_servicio)  # ✅ Aquí guardas el ID como userData
         else:
-            self.detalle.addItem("Seleccionar detalle")
+            self.detalle.addItem("Seleccionar detalle", None)
+
+
+    def obtener_precio(self, categoria, detalle_nombre):
+        """
+        Busca el precio del servicio según la categoría y el detalle seleccionado.
+        """
+        detalle_normalizado = detalle_nombre.strip().lower()
+        servicios = self.servicios_por_variante.get(categoria, [])
+
+        for servicio in servicios:
+            if servicio["nombre"].strip().lower() == detalle_normalizado:
+                return servicio.get("precio", 0.0)
+
+        print(f"[WARN] No se encontró precio para: {detalle_nombre} en categoría {categoria}")
+        return 0.0
+
+
 
     def obtener_datos_cliente_principal(self):
         # Buscar el servicio seleccionado para obtener su precio
@@ -441,3 +530,21 @@ class AgendarCitaWindow(QWidget):
         self.raise_()
         self.activateWindow()
         self.showFullScreen()
+
+
+    def actualizar_detalles_por_combo(self, servicio_combo, detalle_combo):
+        categoria = servicio_combo.currentText()
+        detalle_combo.clear()
+        if categoria in self.servicios_por_variante:
+            for servicio in self.servicios_por_variante[categoria]:
+                detalle_combo.addItem(servicio["nombre"])
+
+    def volver_a_home(self):
+        self.hide()
+        if self.regresar_callback:
+            self.regresar_callback()
+
+
+    def obtener_id_servicio(self, nombre_servicio):
+        from models.cita import obtener_id_servicio_por_nombre
+        return obtener_id_servicio_por_nombre(nombre_servicio)

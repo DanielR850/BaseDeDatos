@@ -19,7 +19,8 @@ class HomeWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Menú Principal")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()  # 👈 Ahora sí muestra los controles de ventana
 
         self.setStyleSheet("""
             QPushButton {
@@ -72,7 +73,6 @@ class HomeWindow(QWidget):
             ("Servicios", self.abrir_servicios),
             ("Disponibilidad", self.abrir_disponibilidad)
         ])
-
         contenedor_layout.addLayout(self.citas_box)
 
         # Inventario
@@ -88,7 +88,6 @@ class HomeWindow(QWidget):
             ("Registro de Pagos", self.abrir_registro_pago),
             ("Promociones", self.abrir_promociones)
         ])
-
         contenedor_layout.addLayout(self.opciones_box)
 
         layout_principal.addLayout(contenedor_layout)
@@ -122,34 +121,8 @@ class HomeWindow(QWidget):
 
         layout.addWidget(submenu_widget)
         layout.addStretch()
-
         toggle_btn.clicked.connect(lambda: self.toggle_visibility(submenu_widget))
-
         return layout
-
-    def abrir_inventario(self):
-        self.inventario_ventana = InventarioVentana(regresar_callback=self.mostrar_home)
-        self.inventario_ventana.show()
-        self.hide()
-
-    def abrir_promociones(self):  # ← NUEVO MÉTODO PARA ABRIR PROMOCIONES
-        self.promociones_ventana = VentanaPromociones()
-        self.promociones_ventana.btn_regresar.clicked.connect(self.mostrar_home)
-        self.promociones_ventana.show()
-        self.hide()
-
-    def mostrar_home(self):
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        self.setWindowState(Qt.WindowActive)
-        self.showFullScreen()
-
-    def volver_de_inventario(self):
-        self.showNormal()         # Asegura que se restaure si está minimizada
-        self.showFullScreen()     # Luego, fuerza pantalla completa
-        self.raise_()             # La trae al frente
-        self.activateWindow()     # Asegura el foco
 
     def toggle_visibility(self, widget):
         widget.setVisible(not widget.isVisible())
@@ -173,29 +146,40 @@ class HomeWindow(QWidget):
         self.hide()
 
     def abrir_disponibilidad(self):
-        self.disponibilidad_ventana = DisponibilidadCitas()
-        self.disponibilidad_ventana.show()
-        self.hide()
-
-
-    def volver_a_login(self):
-        from views.login import LoginWindow  # ← Importación local
-        self.login_window = LoginWindow()
-        self.login_window.show()
-        self.hide()
-
-    def abrir_disponibilidad(self):
         self.disponibilidad_ventana = DisponibilidadCitas(regresar_callback=self.mostrar_home)
         self.disponibilidad_ventana.show()
         self.hide()
 
+    def abrir_inventario(self):
+        self.inventario_ventana = InventarioVentana(regresar_callback=self.mostrar_home)
+        self.inventario_ventana.show()
+        self.hide()
+
+    def abrir_promociones(self):
+        self.promociones_ventana = VentanaPromociones()
+        self.promociones_ventana.btn_regresar.clicked.connect(self.mostrar_home)
+        self.promociones_ventana.show()
+        self.hide()
+
+    def abrir_registro_pago(self):
+        self.registro_pago_ventana = RegistroPago(regresar_callback=self.mostrar_home)
+        self.registro_pago_ventana.show()
+        self.hide()
 
     def abrir_generar_pago(self):
         self.generar_pago_ventana = GenerarPago(regresar_callback=self.mostrar_home)
         self.generar_pago_ventana.show()
         self.hide()
 
-    def abrir_registro_pago(self):
-        self.registro_pago_ventana = RegistroPago(regresar_callback=self.mostrar_home)
-        self.registro_pago_ventana.show()
+    def mostrar_home(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self.setWindowState(Qt.WindowActive)
+        self.showMaximized()
+
+    def volver_a_login(self):
+        from views.login import LoginWindow
+        self.login_window = LoginWindow()
+        self.login_window.show()
         self.hide()

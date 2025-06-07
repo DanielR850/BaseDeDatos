@@ -6,25 +6,27 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt
-
+from models.pago import obtener_metodos_pago
+from models.empleado import obtener_id_empleado_por_usuario
+from models.session import SesionActual
+from models.usuario import obtener_nombre_usuario_por_id
 
 class GenerarPago(QWidget):
+
     def __init__(self, cliente=None, total=0.0, id_cita=None, regresar_callback=None):
         super().__init__()
+        self.setWindowTitle("Generar Pago")
         self.cliente = cliente or {}
         self.total_valor = total
         self.id_cita = id_cita
         self.regresar_callback = regresar_callback
 
-
+        self.setMinimumSize(1024, 1000)  # Puedes ajustar si quieres un tamaño mínimo
+        self.showMaximized()  # ✅ Se abre maximizada
 
         self.setStyleSheet("""
             QWidget {
-                background: qlineargradient(
-                    x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #f8c8dc,
-                    stop: 1 #fefefe
-                );
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #f8c8dc, stop: 1 #fefefe);
                 font-family: 'Poppins';
             }
             QLabel {
@@ -71,8 +73,12 @@ class GenerarPago(QWidget):
 
         self.initUI()
 
+
     def initUI(self):
-        from models.pago import obtener_metodos_pago  # ⬅️ Importar dentro por claridad
+        from models.pago import obtener_metodos_pago
+        from models.empleado import obtener_id_empleado_por_usuario
+        from models.session import SesionActual
+        from models.usuario import obtener_nombre_usuario_por_id
 
         layout_principal = QVBoxLayout()
         layout_principal.setContentsMargins(100, 20, 100, 20)
@@ -103,74 +109,73 @@ class GenerarPago(QWidget):
         campos_centrados = QVBoxLayout()
         campos_centrados.setAlignment(Qt.AlignCenter)
 
-        # Primera fila: 3 campos
+        # Fila 1: ID Cita, Nombre, Teléfono
         fila1 = QHBoxLayout()
         fila1.setSpacing(50)
         self.cita_input = QLineEdit()
         self.nombre_input = QLineEdit()
         self.telefono_input = QLineEdit()
 
-        vbox_cita = self.create_field_group("ID Cita", self.cita_input)
-        vbox_nombre = self.create_field_group("Nombre", self.nombre_input)
-        vbox_telefono = self.create_field_group("Teléfono", self.telefono_input)
+        fila1.addLayout(self.create_field_group("ID Cita", self.cita_input))
+        fila1.addLayout(self.create_field_group("Nombre", self.nombre_input))
+        fila1.addLayout(self.create_field_group("Teléfono", self.telefono_input))
 
-        fila1.addLayout(vbox_cita)
-        fila1.addLayout(vbox_nombre)
-        fila1.addLayout(vbox_telefono)
-
-        # Segunda fila: 3 campos
+        # Fila 2: Servicio, Empleado, Método de Pago
         fila2 = QHBoxLayout()
         fila2.setSpacing(50)
         self.servicio_input = QLineEdit()
         self.empleado_input = QLineEdit()
         self.metodo_pago = QComboBox()
 
-        # Obtener métodos de pago desde la base de datos
         self.metodos_pago_data = obtener_metodos_pago()
         for metodo in self.metodos_pago_data:
             self.metodo_pago.addItem(metodo["nombre"], metodo["id"])
 
-        vbox_servicio = self.create_field_group("Servicio", self.servicio_input)
-        vbox_empleado = self.create_field_group("Empleado", self.empleado_input)
-        vbox_pago = self.create_field_group("Método de Pago", self.metodo_pago)
+        fila2.addLayout(self.create_field_group("Servicio", self.servicio_input))
+        fila2.addLayout(self.create_field_group("Empleado", self.empleado_input))
+        fila2.addLayout(self.create_field_group("Método de Pago", self.metodo_pago))
 
-        fila2.addLayout(vbox_servicio)
-        fila2.addLayout(vbox_empleado)
-        fila2.addLayout(vbox_pago)
-
-        # Tercera fila: Total
+        # Fila 3: Total
         fila3 = QHBoxLayout()
         fila3.setSpacing(50)
         self.total_input = QLineEdit()
-        self.total_input.setReadOnly(True)
-        vbox_total = self.create_field_group("Total a Pagar", self.total_input)
         fila3.addStretch()
-        fila3.addLayout(vbox_total)
+        fila3.addLayout(self.create_field_group("Total a Pagar", self.total_input))
         fila3.addStretch()
 
+        # Agregar filas al layout principal
         campos_centrados.addLayout(fila1)
         campos_centrados.addSpacing(30)
         campos_centrados.addLayout(fila2)
         campos_centrados.addSpacing(30)
         campos_centrados.addLayout(fila3)
-
         layout_principal.addLayout(campos_centrados)
 
-        # Botón Pagar
+        # Botón de pagar
         self.btn_pagar = QPushButton("Realizar Pago")
         self.btn_pagar.setObjectName("pagar")
         self.btn_pagar.clicked.connect(self.realizar_pago)
         layout_principal.addSpacing(30)
         layout_principal.addWidget(self.btn_pagar, alignment=Qt.AlignCenter)
 
-        # Llenar datos si están disponibles
+        # Llenar los campos con datos disponibles
         if self.cliente:
-            self.cita_input.setText(str(self.id_cita) if self.id_cita else "")
+            self.cita_input.setText(str(self.id_cita or ""))
             self.nombre_input.setText(f"{self.cliente.get('nombre', '')} {self.cliente.get('apellido_paterno', '')} {self.cliente.get('apellido_materno', '')}")
             self.telefono_input.setText(self.cliente.get("telefono", ""))
             self.servicio_input.setText(self.cliente.get("detalle", ""))
-            self.empleado_input.setText("Empleado asignado")  # Se puede personalizar si hay sesión
             self.total_input.setText(f"${self.total_valor:.2f}")
+
+            # Obtener nombre real del empleado desde la sesión
+            id_usuario = SesionActual.id_usuario
+            nombre_empleado = "Empleado asignado"
+            if id_usuario:
+                nombre_empleado = obtener_nombre_usuario_por_id(id_usuario) or nombre_empleado
+            self.empleado_input.setText(nombre_empleado)
+
+        # Hacer los campos no editables excepto método de pago
+        for field in [self.cita_input, self.nombre_input, self.telefono_input, self.servicio_input, self.empleado_input, self.total_input]:
+            field.setReadOnly(True)
 
         self.setLayout(layout_principal)
 

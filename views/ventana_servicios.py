@@ -12,10 +12,10 @@ class VentanaServicios(QMainWindow):
     def __init__(self, regresar_callback=None):
         super().__init__()
         self.setWindowTitle("Servicios")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.regresar_callback = regresar_callback  
         self.servicio_seleccionado = None
-
 
         self.setStyleSheet("""
             QWidget {
@@ -50,7 +50,7 @@ class VentanaServicios(QMainWindow):
 
         # --- Barra superior ---
         layout_superior = QHBoxLayout()
-        self.btn_regresar = QPushButton("Regresar")
+        self.btn_regresar = QPushButton("⤺ Regresar")
         self.btn_regresar.setObjectName("regresar")
         self.btn_regresar.clicked.connect(self.volver_a_home)
         layout_superior.addWidget(self.btn_regresar)
@@ -73,7 +73,6 @@ class VentanaServicios(QMainWindow):
         self.busqueda.textChanged.connect(self.buscar_servicio)
         layout_busqueda.addStretch()
         layout_busqueda.addWidget(self.busqueda)
-        self.busqueda.textChanged.connect(self.buscar_servicio)
         layout_busqueda.addStretch()
         layout_principal.addLayout(layout_busqueda)
 
@@ -125,12 +124,10 @@ class VentanaServicios(QMainWindow):
             }
         """)
         self.btn_modificar.clicked.connect(self.abrir_modificar_servicio)
-        self.btn_modificar.setEnabled(False)
         layout_botones.addWidget(self.btn_modificar)
 
         self.btn_eliminar = QPushButton("Eliminar servicio")
         self.btn_eliminar.setEnabled(False)
-        self.btn_eliminar.clicked.connect(self.eliminar_servicio)  # ✅ ya existe 
         self.btn_eliminar.setStyleSheet("""
             QPushButton {
                 background: #E57979;
@@ -145,7 +142,6 @@ class VentanaServicios(QMainWindow):
             }
         """)
         self.btn_eliminar.clicked.connect(self.eliminar_servicio)
-        self.btn_eliminar.setEnabled(False)
         layout_botones.addWidget(self.btn_eliminar)
 
         layout_principal.addLayout(layout_botones)
@@ -153,8 +149,8 @@ class VentanaServicios(QMainWindow):
         # --- Tabla de servicios ---
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(3)
-        self.tabla.setHorizontalHeaderLabels(["Nombre del servicio", "Servicio especificado", "Precio"])
-        self.tabla.itemSelectionChanged.connect(self.seleccionar_servicio)
+        self.tabla.setHorizontalHeaderLabels(["Nombre del servicio", "Variante", "Precio"])
+        self.tabla.itemSelectionChanged.connect(self.seleccionar_fila)
         self.tabla.setStyleSheet("""
             QTableWidget {
                 background: #ffefe3;
@@ -177,7 +173,6 @@ class VentanaServicios(QMainWindow):
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setShowGrid(True)
-        self.tabla.itemSelectionChanged.connect(self.seleccionar_fila)
         layout_principal.addWidget(self.tabla)
 
         # --- Logo ---
@@ -189,6 +184,7 @@ class VentanaServicios(QMainWindow):
         layout_principal.addWidget(lbl_logo, alignment=Qt.AlignRight | Qt.AlignBottom)
 
         self.cargar_servicios()
+
 
     def volver_a_home(self):
         from views.home import HomeWindow
@@ -231,10 +227,10 @@ class VentanaServicios(QMainWindow):
 
             self.tabla.setItem(row_pos, 0, QTableWidgetItem(servicio["Nombre"]))
             self.tabla.setItem(row_pos, 1, QTableWidgetItem(servicio["Variante"]))  # ✅ corregido
-            self.tabla.setItem(row_pos, 2, QTableWidgetItem(str(servicio["Precio"])))
+            precio_formateado = f"${servicio['Precio']:.2f}"
+            self.tabla.setItem(row_pos, 2, QTableWidgetItem(precio_formateado))
 
             self.tabla.setVerticalHeaderItem(row_pos, QTableWidgetItem(str(servicio["ID"])))
-
 
 
     def seleccionar_fila(self):
@@ -242,10 +238,10 @@ class VentanaServicios(QMainWindow):
         if items:
             fila = items[0].row()
             self.servicio_seleccionado = {
-                "ID": int(self.tabla.verticalHeaderItem(fila).text()),  # 👈 Añadir correctamente la ID
+                "ID": int(self.tabla.verticalHeaderItem(fila).text()),
                 "Nombre_Servicio": self.tabla.item(fila, 0).text(),
                 "Nombre_Variante": self.tabla.item(fila, 1).text(),
-                "Precio": self.tabla.item(fila, 2).text(),
+                "Precio": self.tabla.item(fila, 2).text().replace("$", "").strip(),
             }
             self.btn_modificar.setEnabled(True)
             self.btn_eliminar.setEnabled(True)
@@ -254,48 +250,23 @@ class VentanaServicios(QMainWindow):
             self.btn_modificar.setEnabled(False)
             self.btn_eliminar.setEnabled(False)
 
-    def eliminar_servicio(self):
-        if not self.servicio_seleccionado:
-            return
-
-        id_servicio = int(self.servicio_seleccionado)
-        confirm = QMessageBox.question(self, "Confirmar eliminación",
-                                    "¿Estás seguro de eliminar este servicio?",
-                                    QMessageBox.Yes | QMessageBox.No)
-        if confirm == QMessageBox.Yes:
-            if eliminar_servicio(id_servicio):
-                QMessageBox.information(self, "Éxito", "Servicio eliminado correctamente.")
-                self.cargar_servicios()
-            else:
-                QMessageBox.critical(self, "Error", "No se pudo eliminar el servicio.")
-
-
-    def buscar_servicio(self):
-        texto = self.busqueda.text().lower()
-        for fila in range(self.tabla.rowCount()):
-            nombre = self.tabla.item(fila, 0).text().lower()
-            self.tabla.setRowHidden(fila, texto not in nombre)
 
 
 
-    def seleccionar_servicio(self):
-        selected = self.tabla.currentRow()
-        if selected >= 0:
-            self.servicio_seleccionado = self.tabla.verticalHeaderItem(selected).text()
-            self.btn_modificar.setEnabled(True)
-            self.btn_eliminar.setEnabled(True)
-        else:
-            self.servicio_seleccionado = None
-            self.btn_modificar.setEnabled(False)
-            self.btn_eliminar.setEnabled(False)
+
+
+
+
+
 
     def eliminar_servicio(self):
         if not self.servicio_seleccionado:
+            QMessageBox.warning(self, "Sin selección", "Por favor selecciona un servicio.")
             return
 
         id_servicio = self.servicio_seleccionado.get("ID")
         if not id_servicio:
-            QMessageBox.critical(self, "Error", "No se pudo determinar el ID del servicio.")
+            QMessageBox.critical(self, "Error", "No se encontró el ID del servicio.")
             return
 
         confirm = QMessageBox.question(
@@ -309,8 +280,12 @@ class VentanaServicios(QMainWindow):
             if eliminar_servicio(id_servicio):
                 QMessageBox.information(self, "Éxito", "Servicio eliminado correctamente.")
                 self.cargar_servicios()
+                self.servicio_seleccionado = None
+                self.btn_modificar.setEnabled(False)
+                self.btn_eliminar.setEnabled(False)
             else:
                 QMessageBox.critical(self, "Error", "No se pudo eliminar el servicio.")
+
 
 
     def buscar_servicio(self):
@@ -320,3 +295,4 @@ class VentanaServicios(QMainWindow):
             variante = self.tabla.item(fila, 1).text().lower()  # columna 1 = Variante
             coincide = texto in nombre or texto in variante
             self.tabla.setRowHidden(fila, not coincide)
+

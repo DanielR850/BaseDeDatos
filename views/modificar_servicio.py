@@ -1,24 +1,21 @@
-import sys
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QHBoxLayout, QComboBox
+    QWidget, QLabel, QLineEdit, QPushButton, QComboBox,
+    QVBoxLayout, QHBoxLayout, QMessageBox
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from models.servicio_model import actualizar_servicio, obtener_variantes_servicio
-from PyQt5.QtWidgets import QMessageBox
 
 
 class ModificarServicio(QWidget):
     def __init__(self, servicio, regresar_callback=None):
         super().__init__()
-        self.servicio = servicio
-        self.regresar_callback = regresar_callback        
         self.setWindowTitle("Modificar Servicio")
-        self.servicio = servicio
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
 
-        
+        self.servicio = servicio
+        self.regresar_callback = regresar_callback
 
         self.setStyleSheet("""
             QWidget {
@@ -33,7 +30,6 @@ class ModificarServicio(QWidget):
                 background-color: transparent;
                 font-size: 16pt;
                 color: #000000;
-                font-family: 'Poppins';
             }
             QLineEdit, QComboBox {
                 background-color: #e5d3c5;
@@ -44,7 +40,7 @@ class ModificarServicio(QWidget):
                 min-width: 250px;
                 min-height: 41px;
             }
-            QPushButton#regresar, QPushButton#salir {
+            QPushButton#regresar {
                 background-color: transparent;
                 color: #101111;
                 font-family: 'Open Sans';
@@ -53,7 +49,7 @@ class ModificarServicio(QWidget):
                 font-weight: bold;
                 min-width: 100px;
             }
-            QPushButton#regresar:hover, QPushButton#salir:hover {
+            QPushButton#regresar:hover {
                 color: gray;
             }
             QPushButton#guardar {
@@ -74,59 +70,53 @@ class ModificarServicio(QWidget):
         self.initUI()
 
     def initUI(self):
-        nombre = self.servicio["Nombre_Servicio"]
-        tipo = self.servicio["Nombre_Variante"]
-        costo = str(self.servicio["Precio"])
-
         layout_principal = QVBoxLayout()
         layout_principal.setContentsMargins(100, 30, 100, 30)
 
-        # --- Botones superiores ---
-        botones_superiores = QHBoxLayout()
+        # Botones superiores
+        fila_top = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
-        self.btn_regresar.clicked.connect(self.close)
-        botones_superiores.addWidget(self.btn_regresar)
-        botones_superiores.addStretch()
-        layout_principal.addLayout(botones_superiores)
+        self.btn_regresar.clicked.connect(self.regresar)
+        fila_top.addWidget(self.btn_regresar)
+        fila_top.addStretch()
+        layout_principal.addLayout(fila_top)
 
-        # --- Logo ---
+        # Logo
         logo = QLabel()
         pixmap = QPixmap("resources/logo_sinfondo.png").scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
         layout_principal.addWidget(logo)
 
-        # --- Título ---
+        # Título
         titulo = QLabel("Modificar Servicio")
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 30px;")
         layout_principal.addWidget(titulo)
 
-        # --- Campos en una fila ---
+        # Campos
         fila_campos = QHBoxLayout()
         fila_campos.setSpacing(50)
 
-        self.nombre_servicio = QLineEdit()
-        self.nombre_servicio.setText(nombre)
+        self.nombre_servicio = QLineEdit(self.servicio["Nombre_Servicio"])
 
         self.tipo_servicio = QComboBox()
-        self.variantes = obtener_variantes_servicio()
-        for variante in obtener_variantes_servicio():
-            self.tipo_servicio.addItem(variante["Nombre_Variante"], variante["ID_Variante"])
-            if variante["Nombre_Variante"] == tipo:
-                self.tipo_servicio.setCurrentText(tipo)
+        variantes = obtener_variantes_servicio()
+        for v in variantes:
+            self.tipo_servicio.addItem(v["Nombre_Variante"], v["ID_Variante"])
+            if v["Nombre_Variante"] == self.servicio["Nombre_Variante"]:
+                self.tipo_servicio.setCurrentText(v["Nombre_Variante"])
 
-        self.precio = QLineEdit()
-        self.precio.setText(costo)
+        self.precio = QLineEdit(str(self.servicio["Precio"]))
 
         fila_campos.addLayout(self.create_field_group("Nombre del Servicio", self.nombre_servicio))
         fila_campos.addLayout(self.create_field_group("Servicio", self.tipo_servicio))
-        fila_campos.addLayout(self.create_field_group("Costo", self.precio))
+        fila_campos.addLayout(self.create_field_group("Costo ($)", self.precio))
 
         layout_principal.addLayout(fila_campos)
 
-        # --- Botón guardar ---
+        # Botón guardar
         self.btn_guardar = QPushButton("Guardar Cambios")
         self.btn_guardar.setObjectName("guardar")
         self.btn_guardar.clicked.connect(self.guardar_cambios)
@@ -134,19 +124,24 @@ class ModificarServicio(QWidget):
         layout_principal.addWidget(self.btn_guardar, alignment=Qt.AlignCenter)
 
         self.setLayout(layout_principal)
+
     def create_field_group(self, label_text, input_widget):
-        group = QVBoxLayout()
+        vbox = QVBoxLayout()
         label = QLabel(label_text)
         label.setAlignment(Qt.AlignCenter)
-        group.addWidget(label)
-        group.addWidget(input_widget)
-        return group
+        vbox.addWidget(label)
+        vbox.addWidget(input_widget)
+        return vbox
 
+    def regresar(self):
+        self.close()
+        if self.regresar_callback:
+            self.regresar_callback()
 
     def guardar_cambios(self):
         nuevo_nombre = self.nombre_servicio.text().strip()
         nuevo_precio = self.precio.text().strip()
-        nuevo_id_variante = self.tipo_servicio.currentData()  # debe estar ligado al ID de la variante
+        nuevo_id_variante = self.tipo_servicio.currentData()
 
         if not nuevo_nombre or not nuevo_precio:
             QMessageBox.warning(self, "Campos Vacíos", "Por favor, completa todos los campos.")
@@ -158,14 +153,12 @@ class ModificarServicio(QWidget):
             QMessageBox.critical(self, "Error de Formato", "El precio debe ser un número.")
             return
 
-        id_servicio = self.servicio["ID"]  # Asegúrate de tener esto en el dict de servicio
+        id_servicio = self.servicio["ID"]
 
-        exito = actualizar_servicio(id_servicio, nuevo_nombre, nuevo_precio, nuevo_id_variante)
-        if exito:
+        if actualizar_servicio(id_servicio, nuevo_nombre, nuevo_precio, nuevo_id_variante):
             QMessageBox.information(self, "Éxito", "Servicio actualizado correctamente.")
             if self.regresar_callback:
                 self.regresar_callback()
             self.close()
         else:
             QMessageBox.critical(self, "Error", "No se pudo actualizar el servicio.")
-

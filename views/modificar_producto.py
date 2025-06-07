@@ -4,14 +4,15 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
-import os
-from models.producto import actualizar_producto  # asegúrate de tener esta función
+from models.producto import actualizar_producto
+
 
 class ModificarProducto(QWidget):
     def __init__(self, regresar_callback=None, salir_callback=None):
         super().__init__()
         self.setWindowTitle("Modificar Producto")
-        self.showFullScreen()
+        self.setMinimumSize(1024, 1000)
+        self.showMaximized()
         self.regresar_callback = regresar_callback
         self.salir_callback = salir_callback
 
@@ -36,20 +37,7 @@ class ModificarProducto(QWidget):
                 border-radius: 10px;
                 padding: 10px;
                 font-size: 14pt;
-                min-width: 180px;
                 min-height: 41px;
-            }
-            QPushButton#regresar, QPushButton#salir {
-                background-color: transparent;
-                color: #101111;
-                font-family: 'Open Sans';
-                padding: 10px;
-                font-size: 14pt;
-                font-weight: bold;
-                min-width: 100px;
-            }
-            QPushButton#regresar:hover, QPushButton#salir:hover {
-                color: gray;
             }
             QPushButton#agregar {
                 background-color: #231f20;
@@ -63,45 +51,57 @@ class ModificarProducto(QWidget):
             QPushButton#agregar:hover {
                 background-color: #333333;
             }
+            QPushButton#regresar, QPushButton#salir {
+                background-color: transparent;
+                color: #101111;
+                font-family: 'Open Sans';
+                padding: 10px;
+                font-size: 14pt;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton#regresar:hover, QPushButton#salir:hover {
+                color: gray;
+            }
         """)
 
         self.initUI()
 
     def initUI(self):
-        layout_principal = QVBoxLayout()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(50, 30, 50, 30)
+        layout.setSpacing(20)
 
-        # Botones superiores
-        botones_superiores = QHBoxLayout()
+        # --- Barra superior con botones texto ---
+        top_bar = QHBoxLayout()
         self.btn_regresar = QPushButton("Regresar")
         self.btn_regresar.setObjectName("regresar")
         self.btn_regresar.clicked.connect(self.regresar)
+        top_bar.addWidget(self.btn_regresar)
+
+        top_bar.addStretch()
 
         self.btn_salir = QPushButton("Salir")
         self.btn_salir.setObjectName("salir")
         self.btn_salir.clicked.connect(self.salir)
+        top_bar.addWidget(self.btn_salir)
 
-        botones_superiores.addWidget(self.btn_regresar)
-        botones_superiores.addStretch()
-        botones_superiores.addWidget(self.btn_salir)
+        layout.addLayout(top_bar)
 
-        layout_principal.addLayout(botones_superiores)
-
-        # Logo arriba
+        # --- Logo ---
         logo = QLabel()
-        pixmap = QPixmap("resources/logo_sinfondo.png")
-        logo.setPixmap(pixmap.scaledToHeight(100))
+        logo.setPixmap(QPixmap("resources/logo_sinfondo.png").scaledToHeight(100))
         logo.setAlignment(Qt.AlignCenter)
-        layout_principal.addWidget(logo)
+        layout.addWidget(logo)
 
-        # Título
+        # --- Título ---
         titulo = QLabel("Modificar Producto")
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("font-size: 28pt; font-weight: bold; margin-bottom: 20px;")
-        layout_principal.addWidget(titulo)
+        layout.addWidget(titulo)
 
-        # Formulario
-        campos_centrados = QVBoxLayout()
-        campos_centrados.setAlignment(Qt.AlignCenter)
+        # --- Formulario de campos ---
+        form_layout = QVBoxLayout()
 
         fila1 = QHBoxLayout()
         fila1.setSpacing(50)
@@ -122,26 +122,25 @@ class ModificarProducto(QWidget):
         fila2.addLayout(self.form_group("Precio", self.precio))
         fila2.addLayout(self.form_group("Stock", self.stock))
 
-        campos_centrados.addLayout(fila1)
-        campos_centrados.addSpacing(50)
-        campos_centrados.addLayout(fila2)
+        form_layout.addLayout(fila1)
+        form_layout.addSpacing(40)
+        form_layout.addLayout(fila2)
+        layout.addLayout(form_layout)
 
-        layout_principal.addLayout(campos_centrados)
-
-        # Botón modificar producto
+        # --- Botón Modificar ---
         self.btn_agregar = QPushButton("Modificar Producto")
         self.btn_agregar.setObjectName("agregar")
         self.btn_agregar.clicked.connect(self.modificar_producto)
-        layout_principal.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
+        layout.addSpacing(30)
+        layout.addWidget(self.btn_agregar, alignment=Qt.AlignCenter)
 
-        self.setLayout(layout_principal)
+        self.setLayout(layout)
 
-    def form_group(self, label_text, line_edit):
+    def form_group(self, label_text, widget):
         vbox = QVBoxLayout()
         label = QLabel(label_text)
-        label.setAlignment(Qt.AlignCenter)
         vbox.addWidget(label)
-        vbox.addWidget(line_edit)
+        vbox.addWidget(widget)
         return vbox
 
     def modificar_producto(self):
@@ -149,21 +148,25 @@ class ModificarProducto(QWidget):
             id_prod = int(self.id_producto.text())
             nombre = self.nombre.text().strip()
             marca = self.marca.text().strip()
-            precio = float(self.precio.text().strip())
-            stock = int(self.stock.text().strip())
+            precio = self.precio.text().strip().replace(",", ".")
+            stock = self.stock.text().strip()
 
             if not all([nombre, marca, precio, stock]):
                 QMessageBox.warning(self, "Faltan datos", "Por favor, llena todos los campos.")
                 return
 
-            if actualizar_producto(id_prod, nombre, marca, precio, stock):
-                QMessageBox.information(self, "Modificado", "Producto actualizado correctamente.")
+            precio_float = float(precio)
+            stock_int = int(stock)
+
+            if actualizar_producto(id_prod, nombre, marca, precio_float, stock_int):
+                QMessageBox.information(self, "Éxito", "Producto actualizado correctamente.")
                 self.regresar()
             else:
                 QMessageBox.critical(self, "Error", "No se pudo actualizar el producto.")
-
+        except ValueError:
+            QMessageBox.critical(self, "Error de formato", "Asegúrate de que Precio sea decimal y Stock entero.")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo modificar el producto:\n{str(e)}")
+            QMessageBox.critical(self, "Error inesperado", str(e))
 
     def regresar(self):
         self.close()
@@ -176,11 +179,6 @@ class ModificarProducto(QWidget):
             self.salir_callback()
 
     def cargar_datos_producto(self, producto):
-        """
-        Carga los datos de un producto en los campos del formulario.
-        'producto' debe ser un diccionario con las claves:
-        ID_Producto, Nombre_Producto, Marca, Precio_Compra, Stock
-        """
         self.id_producto.setText(str(producto.get("ID_Producto", "")))
         self.nombre.setText(producto.get("Nombre_Producto", ""))
         self.marca.setText(producto.get("Marca", ""))

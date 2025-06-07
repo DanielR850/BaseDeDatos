@@ -11,10 +11,9 @@ def excepthook(exc_type, exc_value, exc_tb):
     print("💥 Excepción no detectada:")
     print(full_msg)
 
-    # Mostrar en ventana emergente
     ctypes.windll.user32.MessageBoxW(0, full_msg, "Error Crítico", 0)
     sys.exit(1)
-    
+
 sys.excepthook = excepthook
 
 print("🟢 Iniciando main.py")
@@ -34,6 +33,6 @@ if __name__ == "__main__":
     print("🚀 Lanzando QApplication")
     app = QApplication(sys.argv)
     ventana = LoginWindow()
-    ventana.show()
-    print("🪟 LoginWindow mostrada")
+    ventana.showMaximized()  # ✅ Asegura que se abra en pantalla completa
+    print("🪟 LoginWindow mostrada maximizada")
     sys.exit(app.exec_())
