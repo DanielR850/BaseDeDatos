@@ -1,0 +1,50 @@
+# Sistema de Gestión para Salón de Belleza
+
+Aplicación de escritorio desarrollada para administrar las operaciones principales de un salón de belleza, incluyendo clientes, empleados, citas, servicios, inventario, pagos, promociones y costos adicionales.
+
+El sistema utiliza una interfaz gráfica desarrollada con PyQt5 y una base de datos relacional MySQL diseñada para mantener la integridad, organización y escalabilidad de la información.
+
+## Objetivo
+
+Digitalizar y centralizar la administración de un salón de belleza mediante una aplicación que permita gestionar los procesos principales del negocio desde una sola plataforma.
+
+## Características
+
+- Inicio de sesión y control de acceso.
+- Administración de empleados y roles.
+- Registro y consulta de clientes.
+- Gestión de citas.
+- Administración de servicios y variantes.
+- Control de inventario.
+- Asociación de productos con servicios.
+- Registro de pagos y métodos de pago.
+- Administración de promociones.
+- Registro de costos adicionales.
+- Persistencia de información mediante MySQL.
+
+## Tecnologías utilizadas
+
+- Python
+- PyQt5
+- MySQL
+- PyMySQL
+- bcrypt
+- PyInstaller
+- Git y GitHub
+
+## Arquitectura
+
+La aplicación está organizada en tres componentes principales:
+
+1. **Interfaz gráfica:** pantallas construidas con PyQt5.
+2. **Lógica de negocio:** procesos, validaciones y operaciones desarrolladas en Python.
+3. **Persistencia:** conexión con MySQL mediante PyMySQL.
+
+```text
+PyQt5
+  ↓
+Python
+  ↓
+PyMySQL
+  ↓
+MySQL
